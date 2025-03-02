@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>Another Product Invented Backgammon</title>
+  <title>Another Product Invented - Backgammon</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <style>
     /* Base Styles */
@@ -21,7 +21,6 @@
       text-align: center;
       line-height: 1.2;
     }
-    /* Container & Canvas */
     #gameContainer {
       position: relative;
       width: 720px;
@@ -36,7 +35,6 @@
       border: 2px solid #333;
       touch-action: none;
     }
-    /* Overlays */
     .overlayScreen {
       position: absolute;
       top: 0; left: 0; right: 0; bottom: 0;
@@ -56,7 +54,6 @@
       padding: 10px 20px;
       cursor: pointer;
     }
-    /* Bottom Bar */
     #bottomBar {
       width: 720px;
       max-width: 100%;
@@ -69,90 +66,51 @@
       box-sizing: border-box;
       margin-top: 5px;
     }
-    /* Logo */
-    #logo {
-      position: fixed;
-      bottom: 10px;
-      right: 10px;
-      max-width: 100px;
-      z-index: 2000;
-    }
   </style>
 </head>
 <body>
-  <!-- Header -->
   <h1>Another Product Invented<br>Backgammon</h1>
-  
+
   <!-- Game Container -->
   <div id="gameContainer">
-    <!-- Main Menu Overlay -->
     <div id="menuScreen" class="overlayScreen" style="display: flex;">
       <button id="newGameBtn">New Game</button>
       <button id="instructionsBtn">Instructions</button>
     </div>
-    <!-- Color Selection Overlay -->
     <div id="colorScreen" class="overlayScreen">
       <p>Choose Your Side:</p>
       <button id="redSideBtn">Red [R]</button>
       <button id="whiteSideBtn">White [W]</button>
-      <p>You can also press R or W on your keyboard.</p>
     </div>
-    <!-- Difficulty Selection Overlay -->
     <div id="difficultyScreen" class="overlayScreen">
       <p>Select Difficulty:</p>
       <button id="easyBtn">Easy [E]</button>
       <button id="mediumBtn">Medium [M]</button>
       <button id="hardBtn">Hard [H]</button>
-      <p>You can also press E, M, or H on your keyboard.</p>
     </div>
-    <!-- Instructions Overlay -->
     <div id="instructionsScreen" class="overlayScreen">
       <h2>How to Play Backgammon</h2>
       <p>
-        Move all your checkers into your home board and bear them off before your opponent does.<br>
-        Roll two dice; each die represents a move value. Doubles give four moves.<br>
-        Click a checker to see its legal moves.<br>
-        If a checker lands on a single opponent checker, it is hit and removed.<br>
-        The first player to remove all their checkers wins.
+        Move all checkers home and bear them off first.<br>
+        Roll dice and move checkers based on values.<br>
+        Capture opponent pieces by landing alone on them.<br>
+        If all checkers are home, you can bear them off.<br>
+        First player to remove all checkers wins.
       </p>
       <p>Press [M] to return to the Main Menu.</p>
     </div>
-    <!-- Game Over Overlay -->
     <div id="gameOverScreen" class="overlayScreen">
       <h2 id="gameOverText"></h2>
       <button id="gameOverNewGameBtn">New Game</button>
-      <p>Press [M] to return to the Main Menu.</p>
     </div>
-    <!-- The Game Canvas -->
     <canvas id="backgammonCanvas" width="720" height="500"></canvas>
   </div>
-  
-  <!-- Bottom Bar -->
   <div id="bottomBar">
     <span id="turnDisplay">Turn: </span>
     <span id="diceDisplay" style="margin-left: 20px;">Dice: </span>
   </div>
-  
-  <!-- Logo -->
-  <img id="logo" src="logo.png" alt="Logo">
-  
+
   <script>
-    function showMenu() {
-        hideAllScreens();
-        gameState = "menu";
-        document.getElementById("menuScreen").style.display = "flex";
-        document.getElementById("bottomBar").style.display = "none"; // Hide turn info bar
-    }
-
-    // ✅ Fixed: "M" key now properly resets the game
-    document.addEventListener("keydown", (e) => {
-        if (e.key.toLowerCase() === "m") {
-            if (gameState !== "menu") {
-                showMenu();
-            }
-        }
-    });
-
     const canvas = document.getElementById("backgammonCanvas");
     const ctx = canvas.getContext("2d");
 
@@ -161,10 +119,43 @@
     let difficulty = "easy";
     let currentPlayer = "red";
     let dice = [];
+    let board = Array(24).fill(null).map(() => []);
+    let redHome = 0, whiteHome = 0;
+    
+    function showMenu() {
+        hideAllScreens();
+        gameState = "menu";
+        document.getElementById("menuScreen").style.display = "flex";
+        document.getElementById("bottomBar").style.display = "none";
+    }
+
+    document.addEventListener("keydown", (e) => {
+        if (e.key.toLowerCase() === "m") {
+            if (gameState !== "menu") {
+                showMenu();
+            }
+        }
+    });
 
     function rollDice() {
         dice = [Math.floor(Math.random() * 6) + 1, Math.floor(Math.random() * 6) + 1];
         document.getElementById("diceDisplay").textContent = "Dice: " + dice.join(", ");
+    }
+
+    function initBoard() {
+        board = Array(24).fill(null).map(() => []);
+        board[23] = Array(2).fill("red");
+        board[12] = Array(5).fill("red");
+        board[7] = Array(3).fill("red");
+        board[5] = Array(5).fill("red");
+
+        board[0] = Array(2).fill("white");
+        board[11] = Array(5).fill("white");
+        board[16] = Array(3).fill("white");
+        board[18] = Array(5).fill("white");
+
+        redHome = 0;
+        whiteHome = 0;
     }
 
     function drawBoard() {
@@ -181,39 +172,26 @@
         document.querySelectorAll(".overlayScreen").forEach(el => el.style.display = "none");
     }
 
-    // ✅ Moved `startGame()` ABOVE button listeners to ensure it works
     function startGame(selectedDifficulty) {
         hideAllScreens();
         gameState = "playing";
         difficulty = selectedDifficulty;
+        initBoard();
         rollDice();
         drawBoard();
-        document.getElementById("bottomBar").style.display = "flex"; // Show turn info
+        document.getElementById("bottomBar").style.display = "flex";
     }
 
-    // ✅ Difficulty buttons now correctly start the game
+    document.getElementById("newGameBtn").onclick = () => document.getElementById("colorScreen").style.display = "flex";
+    document.getElementById("redSideBtn").onclick = () => { playerSide = "red"; document.getElementById("difficultyScreen").style.display = "flex"; };
+    document.getElementById("whiteSideBtn").onclick = () => { playerSide = "white"; document.getElementById("difficultyScreen").style.display = "flex"; };
     document.getElementById("easyBtn").onclick = () => startGame("easy");
     document.getElementById("mediumBtn").onclick = () => startGame("medium");
     document.getElementById("hardBtn").onclick = () => startGame("hard");
-
-    document.getElementById("newGameBtn").onclick = () => {
-        document.getElementById("colorScreen").style.display = "flex";
-    };
-    document.getElementById("redSideBtn").onclick = () => {
-        playerSide = "red";
-        document.getElementById("difficultyScreen").style.display = "flex";
-    };
-    document.getElementById("whiteSideBtn").onclick = () => {
-        playerSide = "white";
-        document.getElementById("difficultyScreen").style.display = "flex";
-    };
-
-    document.getElementById("instructionsBtn").onclick = () => {
-        document.getElementById("instructionsScreen").style.display = "flex";
-    };
+    document.getElementById("instructionsBtn").onclick = () => document.getElementById("instructionsScreen").style.display = "flex";
 
     drawBoard();
     showMenu();
-</script>
+  </script>
 </body>
 </html>
