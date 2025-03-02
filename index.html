@@ -2,370 +2,531 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>Backgammon Game</title>
+  <title>Another Product Invented Backgammon</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <style>
+    /* Base Styles */
     body {
       margin: 0;
+      padding: 0;
+      background: #fff;
       font-family: sans-serif;
-      background: #2c3e50;
-      color: #ecf0f1;
       display: flex;
       flex-direction: column;
       align-items: center;
-    }
-    #board {
       position: relative;
-      width: 800px;
-      height: 500px;
-      background: #8e7c67;
-      border: 4px solid #34495e;
-      margin-top: 20px;
-      display: flex;
-      flex-wrap: wrap;
     }
-    /* Board is split in half horizontally */
-    .half-board {
+    h1 {
+      margin: 1rem 0 0.5rem;
+      text-align: center;
+      line-height: 1.2;
+    }
+    /* Container & Canvas */
+    #gameContainer {
+      position: relative;
+      width: 720px;
+      max-width: 100%;
+      margin-bottom: 10px;
+    }
+    canvas {
+      display: block;
+      background: #eee;
       width: 100%;
-      height: 50%;
-      position: relative;
-      display: flex;
-      justify-content: space-between;
+      height: auto;
+      border: 2px solid #333;
+      touch-action: none;
     }
-    /* Points (triangles) */
-    .point {
-      position: relative;
-      width: calc(100% / 12);
-      height: 100%;
-      border-left: 1px solid #34495e;
-      border-right: 1px solid #34495e;
-      box-sizing: border-box;
-    }
-    .point.top {
-      clip-path: polygon(50% 0%, 100% 100%, 0% 100%);
-      background: #e74c3c;
-    }
-    .point.bottom {
-      clip-path: polygon(50% 100%, 100% 0%, 0% 0%);
-      background: #3498db;
-    }
-    /* Checkers */
-    .checker {
+    /* Overlays */
+    .overlayScreen {
       position: absolute;
-      width: 30px;
-      height: 30px;
-      border-radius: 50%;
-      border: 2px solid #ecf0f1;
-      box-sizing: border-box;
-    }
-    .checker.red {
-      background: #e74c3c;
-    }
-    .checker.blue {
-      background: #3498db;
-    }
-    /* Dice area */
-    #diceContainer {
-      margin-top: 20px;
-      display: flex;
-      gap: 20px;
-    }
-    .die {
-      width: 60px;
-      height: 60px;
-      background: #ecf0f1;
-      border: 2px solid #34495e;
-      font-size: 2em;
-      display: flex;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: rgba(255,255,255,0.95);
+      display: none;
+      flex-direction: column;
       align-items: center;
       justify-content: center;
+      text-align: center;
+      z-index: 10;
+      padding: 20px;
+      box-sizing: border-box;
+    }
+    button {
+      font-size: 18px;
+      margin: 10px;
+      padding: 10px 20px;
       cursor: pointer;
-      user-select: none;
     }
-    /* Message area */
-    #message {
-      margin-top: 20px;
-      font-size: 1.2em;
+    /* Bottom Bar */
+    #bottomBar {
+      width: 720px;
+      max-width: 100%;
+      background: #fff;
+      border-top: 1px solid #ccc;
+      display: none;
+      align-items: center;
+      justify-content: flex-start;
+      padding: 10px;
+      box-sizing: border-box;
+      margin-top: 5px;
     }
-    /* Highlight selected point */
-    .highlight {
-      outline: 3px solid yellow;
+    /* Logo */
+    #logo {
+      position: fixed;
+      bottom: 10px;
+      right: 10px;
+      max-width: 100px;
+      z-index: 2000;
     }
   </style>
 </head>
 <body>
-  <h1>Backgammon</h1>
-  <div id="board">
-    <!-- Two halves: top half (points 13-24) and bottom half (points 12-1) -->
-    <div class="half-board" id="topHalf"></div>
-    <div class="half-board" id="bottomHalf"></div>
+  <!-- Header -->
+  <h1>Another Product Invented<br>Backgammon</h1>
+  
+  <!-- Game Container -->
+  <div id="gameContainer">
+    <!-- Main Menu Overlay -->
+    <div id="menuScreen" class="overlayScreen" style="display: flex;">
+      <button id="newGameBtn">New Game</button>
+      <button id="instructionsBtn">Instructions</button>
+    </div>
+    <!-- Color Selection Overlay -->
+    <div id="colorScreen" class="overlayScreen">
+      <p>Choose Your Side:</p>
+      <button id="redSideBtn">Red [R]</button>
+      <button id="whiteSideBtn">White [W]</button>
+      <p>You can also press R or W on your keyboard.</p>
+    </div>
+    <!-- Difficulty Selection Overlay -->
+    <div id="difficultyScreen" class="overlayScreen">
+      <p>Select Difficulty:</p>
+      <button id="easyBtn">Easy [E]</button>
+      <button id="mediumBtn">Medium [M]</button>
+      <button id="hardBtn">Hard [H]</button>
+      <p>You can also press E, M, or H on your keyboard.</p>
+    </div>
+    <!-- Instructions Overlay -->
+    <div id="instructionsScreen" class="overlayScreen">
+      <h2>How to Play Backgammon</h2>
+      <p>
+        The objective is to move all your checkers into your home board and bear them off before your opponent does.<br>
+        On your turn, roll two dice. Each die represents a move value. If doubles, you get four moves.<br>
+        Select a checker on a point that belongs to you. Legal moves are highlighted. You may move a checker by exactly the value of one die.<br>
+        A move is legal if the target point is empty, occupied by your own checkers, or contains exactly one opponent checker (which is hit).<br>
+        When a checker is hit, it is removed (for this simplified version).<br>
+        Turns alternate between players; if a player has no legal moves, they lose.
+      </p>
+      <p>Press [M] to return to the Main Menu.</p>
+    </div>
+    <!-- Game Over Overlay -->
+    <div id="gameOverScreen" class="overlayScreen">
+      <h2 id="gameOverText"></h2>
+      <button id="gameOverNewGameBtn">New Game</button>
+      <p>Press [M] to return to the Main Menu.</p>
+    </div>
+    <!-- The Game Canvas -->
+    <canvas id="backgammonCanvas" width="720" height="500"></canvas>
   </div>
-  <div id="diceContainer">
-    <div class="die" id="die1">?</div>
-    <div class="die" id="die2">?</div>
-    <button id="rollBtn">Roll Dice</button>
+  
+  <!-- Bottom Bar with Turn & Dice Info -->
+  <div id="bottomBar">
+    <span id="turnDisplay">Turn: </span>
+    <span id="diceDisplay" style="margin-left: 20px;">Dice: </span>
   </div>
-  <div id="message">Click "Roll Dice" to begin.</div>
-
+  
+  <!-- Logo -->
+  <img id="logo" src="logo.png" alt="Logo">
+  
   <script>
-    /******************************************************************
-     * Backgammon Game
-     *
-     * This implementation sets up a simplified backgammon board, initializes
-     * checkers in standard positions, allows dice rolling, and supports basic
-     * movement of checkers between points with legal move highlighting.
-     *
-     * Notes:
-     *  - Points are numbered 1 to 24 (for display, bottom half points 1-12,
-     *    top half points 13-24). Internally, we use 0-indexed array positions.
-     *  - Red checkers (player 1) move from lower-numbered points to higher.
-     *  - Blue checkers (player 2) move from higher-numbered points to lower.
-     *  - Capturing (hitting an opponent) is implemented in a simplified form.
-     *
-     * For a complete Backgammon game, additional rules (bearing off, re-entry,
-     * doubling cube, etc.) would be implemented.
-     ******************************************************************/
-
-    // Global game state
-    const boardElementTop = document.getElementById("topHalf");
-    const boardElementBottom = document.getElementById("bottomHalf");
-    const diceContainer = document.getElementById("diceContainer");
-    const die1El = document.getElementById("die1");
-    const die2El = document.getElementById("die2");
-    const rollBtn = document.getElementById("rollBtn");
-    const messageEl = document.getElementById("message");
-
-    let board = []; // Array of 24 points (each is an array of checkers)
-    let currentPlayer = "red"; // "red" or "blue"
-    let dice = []; // Current dice values
-    let movesRemaining = []; // Moves available for this turn (e.g. [die1, die2] or doubled if doubles)
-    let selectedPoint = null; // Index of point selected for moving a checker
-
-    // Setup board initial positions (standard backgammon starting position)
+    /************ Global Variables & State ************/
+    const canvas = document.getElementById("backgammonCanvas");
+    const ctx = canvas.getContext("2d");
+    
+    const menuScreen = document.getElementById("menuScreen");
+    const colorScreen = document.getElementById("colorScreen");
+    const difficultyScreen = document.getElementById("difficultyScreen");
+    const instructionsScreen = document.getElementById("instructionsScreen");
+    const gameOverScreen = document.getElementById("gameOverScreen");
+    const bottomBar = document.getElementById("bottomBar");
+    const turnDisplay = document.getElementById("turnDisplay");
+    const diceDisplay = document.getElementById("diceDisplay");
+    const gameOverText = document.getElementById("gameOverText");
+    
+    let gameState = "menu";  // "menu", "color_choice", "difficulty_choice", "playing", "instructions", "game_over"
+    let playerSide = null;   // "red" or "white"
+    let difficulty = "easy"; // "easy", "medium", "hard"
+    let currentPlayer = "red";  // red always starts
+    let board = [];  // 24 points (0-23); each is an array of checkers ("red" or "white")
+    let dice = [];   // Two dice values; doubles yield four moves
+    let movesRemaining = []; // Array of move values for current turn
+    let selectedPoint = null; // index of point selected for moving a checker
+    
+    /************ Board & Piece Setup ************/
+    // Standard Backgammon starting position:
+    // Using 0-index for points:
+    // Points 1-24: we number them 0 to 23.
+    // For our purposes, we'll use the following arrangement:
+    //   Red checkers:
+    //     - 2 on point 24 (index 23)
+    //     - 5 on point 13 (index 12)
+    //     - 3 on point 8 (index 7)
+    //     - 5 on point 6 (index 5)
+    //   White checkers:
+    //     - 2 on point 1 (index 0)
+    //     - 5 on point 12 (index 11)
+    //     - 3 on point 17 (index 16)
+    //     - 5 on point 19 (index 18)
     function initBoard() {
-      // Create 24 points (0-23)
       board = Array.from({ length: 24 }, () => []);
-      // Standard positions:
-      // Red (player 1) checkers:
-      //  - 2 on point 24 (index 23)
-      //  - 5 on point 13 (index 12)
-      //  - 3 on point 8 (index 7)
-      //  - 5 on point 6 (index 5)
       board[23] = Array(2).fill("red");
       board[12] = Array(5).fill("red");
-      board[7] = Array(3).fill("red");
-      board[5] = Array(5).fill("red");
-      // Blue (player 2) checkers:
-      //  - 2 on point 1 (index 0)
-      //  - 5 on point 12 (index 11)
-      //  - 3 on point 17 (index 16)
-      //  - 5 on point 19 (index 18)
-      board[0] = Array(2).fill("blue");
-      board[11] = Array(5).fill("blue");
-      board[16] = Array(3).fill("blue");
-      board[18] = Array(5).fill("blue");
+      board[7]  = Array(3).fill("red");
+      board[5]  = Array(5).fill("red");
+      
+      board[0]  = Array(2).fill("white");
+      board[11] = Array(5).fill("white");
+      board[16] = Array(3).fill("white");
+      board[18] = Array(5).fill("white");
     }
-
-    // Create board DOM elements for points
-    function createBoardUI() {
-      boardElementTop.innerHTML = "";
-      boardElementBottom.innerHTML = "";
-      // Top half: points 13-24 (indexes 12 to 23) – left to right
-      for (let i = 12; i < 24; i++) {
-        const pointEl = document.createElement("div");
-        pointEl.classList.add("point", "top");
-        pointEl.dataset.pointIndex = i;
-        boardElementTop.appendChild(pointEl);
-      }
-      // Bottom half: points 12-1 (indexes 11 to 0) – left to right (so display reversed)
-      for (let i = 11; i >= 0; i--) {
-        const pointEl = document.createElement("div");
-        pointEl.classList.add("point", "bottom");
-        pointEl.dataset.pointIndex = i;
-        boardElementBottom.appendChild(pointEl);
-      }
-    }
-
-    // Draw checkers on each point
+    
+    /************ Drawing Functions ************/
+    // The board is drawn as a rectangular area with 24 points.
+    // Points 0-11 will be at the bottom (displayed left-to-right as points 12 to 1)
+    // Points 12-23 will be at the top (displayed left-to-right as points 13 to 24)
+    const BOARD_WIDTH = canvas.width;
+    const BOARD_HEIGHT = canvas.height;
+    const POINT_WIDTH = BOARD_WIDTH / 12;
+    const POINT_HEIGHT = BOARD_HEIGHT * 0.45; // each triangle takes 45% of height
+    
     function drawBoard() {
-      // Clear all point elements first
-      const points = document.querySelectorAll(".point");
-      points.forEach(pointEl => {
-        pointEl.innerHTML = "";
-        pointEl.classList.remove("highlight");
-      });
-      // Draw checkers on each point
-      board.forEach((checkers, index) => {
-        const pointEl = document.querySelector(`.point[data-point-index='${index}']`);
-        if (!pointEl) return;
-        // For simplicity, stack checkers vertically (with some overlap)
-        const offset = 5;
-        checkers.forEach((color, i) => {
-          const checker = document.createElement("div");
-          checker.classList.add("checker", color);
-          // Positioning: if top half, stack downward; if bottom, stack upward.
-          if (pointEl.classList.contains("top")) {
-            checker.style.top = (i * offset) + "px";
-            checker.style.left = "calc(50% - 15px)";
-          } else {
-            checker.style.bottom = (i * offset) + "px";
-            checker.style.left = "calc(50% - 15px)";
-          }
-          pointEl.appendChild(checker);
-        });
-      });
-    }
-
-    // Roll dice
-    function rollDice() {
-      // Roll two dice (values 1 to 6)
-      const d1 = Math.floor(Math.random() * 6) + 1;
-      const d2 = Math.floor(Math.random() * 6) + 1;
-      dice = [d1, d2];
-      // If doubles, you get four moves of that value.
-      movesRemaining = (d1 === d2) ? [d1, d1, d1, d1] : [d1, d2];
-      die1El.textContent = d1;
-      die2El.textContent = d2;
-      messageEl.textContent = currentPlayer + "'s turn. Select a checker to move " +
-        "using one of the dice: " + movesRemaining.join(", ");
-      // Clear previous selection if any.
-      selectedPoint = null;
-      drawBoard();
-    }
-
-    // Check if a move from a point using a given die is legal.
-    // For simplicity, we assume red moves upward (increasing index) and blue moves downward.
-    function isLegalMove(fromPoint, dieValue) {
-      if (fromPoint < 0 || fromPoint >= board.length) return false;
-      if (board[fromPoint].length === 0) return false;
-      const checkerColor = board[fromPoint][0];
-      let target;
-      if (checkerColor === "red") {
-        target = fromPoint + dieValue;
-        if (target >= board.length) return false;
-      } else {
-        target = fromPoint - dieValue;
-        if (target < 0) return false;
+      // Clear board area.
+      ctx.clearRect(0, 0, BOARD_WIDTH, BOARD_HEIGHT);
+      // Draw background.
+      ctx.fillStyle = "#F5DEB3";
+      ctx.fillRect(0, 0, BOARD_WIDTH, BOARD_HEIGHT);
+      
+      // Draw top points (points 12-23, index 12 to 23)
+      for (let i = 12; i < 24; i++) {
+        const x = (i - 12) * POINT_WIDTH;
+        ctx.beginPath();
+        ctx.moveTo(x, 0);
+        ctx.lineTo(x + POINT_WIDTH, 0);
+        ctx.lineTo(x + POINT_WIDTH/2, POINT_HEIGHT);
+        ctx.closePath();
+        ctx.fillStyle = (i % 2 === 0) ? "#D2691E" : "#8B4513";
+        ctx.fill();
+        ctx.strokeStyle = "#333";
+        ctx.stroke();
+        // Draw checker count if any.
+        const count = board[i].length;
+        if (count > 0) {
+          ctx.fillStyle = "#000";
+          ctx.font = "16px sans-serif";
+          ctx.textAlign = "center";
+          ctx.fillText(count, x + POINT_WIDTH/2, POINT_HEIGHT + 20);
+        }
       }
-      // For a legal move, target must be empty, occupied by same color, or have exactly one opposing checker.
-      const targetCheckers = board[target];
-      if (targetCheckers.length === 0) return true;
-      if (targetCheckers[0] === checkerColor) return true;
-      if (targetCheckers.length === 1) return true;
-      return false;
-    }
-
-    // Get all legal moves for current player.
-    function getLegalMoves() {
-      let moves = [];
+      
+      // Draw bottom points (points 0-11, but display order reversed: leftmost is point 1 (index 0))
+      for (let i = 0; i < 12; i++) {
+        const x = (11 - i) * POINT_WIDTH;
+        ctx.beginPath();
+        ctx.moveTo(x, BOARD_HEIGHT);
+        ctx.lineTo(x + POINT_WIDTH, BOARD_HEIGHT);
+        ctx.lineTo(x + POINT_WIDTH/2, BOARD_HEIGHT - POINT_HEIGHT);
+        ctx.closePath();
+        ctx.fillStyle = (i % 2 === 0) ? "#D2691E" : "#8B4513";
+        ctx.fill();
+        ctx.strokeStyle = "#333";
+        ctx.stroke();
+        // Draw checker count if any.
+        const count = board[i].length;
+        if (count > 0) {
+          ctx.fillStyle = "#000";
+          ctx.font = "16px sans-serif";
+          ctx.textAlign = "center";
+          ctx.fillText(count, x + POINT_WIDTH/2, BOARD_HEIGHT - POINT_HEIGHT - 10);
+        }
+      }
+      
+      // Draw checkers as circles on each point.
       board.forEach((checkers, index) => {
         if (checkers.length === 0) return;
-        if (currentPlayer === "red" && checkers[0] !== "red") return;
-        if (currentPlayer === "blue" && checkers[0] !== "blue") return;
-        movesRemaining.forEach(dieValue => {
-          if (isLegalMove(index, dieValue)) {
-            moves.push({ from: index, die: dieValue });
-          }
-        });
+        // Determine point center.
+        let cx, cy;
+        // For top points (index 12-23)
+        if (index >= 12) {
+          const x = (index - 12) * POINT_WIDTH;
+          cx = x + POINT_WIDTH/2;
+          // Distribute checkers vertically downward from the tip.
+          cy = POINT_HEIGHT + 30; // start drawing below the triangle tip
+          checkers.forEach((color, i) => {
+            drawChecker(cx, cy + i * 20, color);
+          });
+        } else { // bottom points (index 0-11)
+          // Display order reversed.
+          const x = (11 - index) * POINT_WIDTH;
+          cx = x + POINT_WIDTH/2;
+          // Distribute checkers vertically upward from the tip.
+          cy = BOARD_HEIGHT - POINT_HEIGHT - 30;
+          checkers.forEach((color, i) => {
+            drawChecker(cx, cy - i * 20, color);
+          });
+        }
+      });
+      
+      // Draw dice values in bottom bar.
+      diceDisplay.textContent = "Dice: " + (dice.length ? dice.join(", ") : "--");
+      turnDisplay.textContent = "Turn: " + currentPlayer.charAt(0).toUpperCase() + currentPlayer.slice(1);
+    }
+    
+    function drawChecker(cx, cy, color) {
+      ctx.beginPath();
+      ctx.arc(cx, cy, 15, 0, Math.PI * 2);
+      ctx.fillStyle = color;
+      ctx.fill();
+      ctx.strokeStyle = "#000";
+      ctx.stroke();
+    }
+    
+    function redraw() {
+      drawBoard();
+    }
+    
+    /************ Move & Game Logic ************/
+    // In this simplified version, each move must exactly equal one of the dice values.
+    // Red moves from lower-index to higher-index, White moves in reverse.
+    function getLegalMovesForPoint(pointIndex) {
+      const moves = [];
+      if (board[pointIndex].length === 0) return moves;
+      const pieceColor = board[pointIndex][0];
+      if (pieceColor !== currentPlayer) return moves;
+      movesRemaining.forEach(die => {
+        let target;
+        if (pieceColor === "red") {
+          target = pointIndex + die;
+          if (target >= 24) return;
+        } else { // white moves downward
+          target = pointIndex - die;
+          if (target < 0) return;
+        }
+        // Target is legal if empty, or occupied by same color, or a blot (exactly one opponent checker).
+        const targetCheckers = board[target];
+        if (targetCheckers.length === 0 ||
+            (targetCheckers[0] === pieceColor) ||
+            (targetCheckers.length === 1 && targetCheckers[0] !== pieceColor)) {
+          moves.push({ from: pointIndex, to: target, die });
+        }
       });
       return moves;
     }
-
-    // Execute a move: move a checker from one point to target.
-    function executeMove(fromPoint, dieValue) {
-      let target;
-      const checkerColor = board[fromPoint][0];
-      if (checkerColor === "red") {
-        target = fromPoint + dieValue;
-      } else {
-        target = fromPoint - dieValue;
+    
+    function getAllLegalMoves() {
+      let legal = [];
+      board.forEach((_, i) => {
+        legal = legal.concat(getLegalMovesForPoint(i));
+      });
+      return legal;
+    }
+    
+    function executeMove(move) {
+      const { from, to, die } = move;
+      const piece = board[from].pop();
+      // If target has a single opponent checker, it is hit (removed).
+      if (board[to].length === 1 && board[to][0] !== currentPlayer) {
+        board[to] = [];
       }
-      // Check for hitting (if target has one opposing checker)
-      if (board[target].length === 1 && board[target][0] !== checkerColor) {
-        // Remove the hit checker and send it to the bar (not fully implemented, so we just remove it)
-        console.log("Hit! Removing opposing checker at point " + target);
-        board[target] = [];
-      }
-      // Move one checker from fromPoint to target
-      board[target].push(board[fromPoint].pop());
-      // Remove the used die move
-      const index = movesRemaining.indexOf(dieValue);
-      if (index > -1) {
-        movesRemaining.splice(index, 1);
+      board[to].push(piece);
+      // Remove the used die value.
+      const idx = movesRemaining.indexOf(die);
+      if (idx > -1) movesRemaining.splice(idx, 1);
+    }
+    
+    // After each move, check if player can make any more moves.
+    function endTurnIfNoMoves() {
+      if (movesRemaining.length === 0 || getAllLegalMoves().length === 0) {
+        swapTurn();
       }
     }
-
-    // Handle click on a point: if a checker is selected, try to move it with one of the dice.
-    function handlePointClick(e) {
-      const pointIndex = parseInt(e.currentTarget.dataset.pointIndex);
-      // If no checker is selected, set this as the selected point if it has a checker of current player's color.
+    
+    function swapTurn() {
+      currentPlayer = (currentPlayer === "red") ? "white" : "red";
+      // Roll dice for new turn.
+      rollDice();
+    }
+    
+    /************ Dice Logic ************/
+    function rollDice() {
+      const d1 = Math.floor(Math.random() * 6) + 1;
+      const d2 = Math.floor(Math.random() * 6) + 1;
+      dice = [d1, d2];
+      movesRemaining = (d1 === d2) ? [d1, d1, d1, d1] : [d1, d2];
+      message("Turn: " + currentPlayer + ". Roll: " + dice.join(", ") + ". Select a checker.");
+      redraw();
+    }
+    
+    /************ Input Handling ************/
+    // Player clicks on a point to select a checker or execute a move.
+    canvas.addEventListener("click", (e) => {
+      if (gameState !== "playing") return;
+      const rect = canvas.getBoundingClientRect();
+      const x = e.clientX - rect.left;
+      const y = e.clientY - rect.top;
+      // Determine which point was clicked.
+      let pointIndex = null;
+      // Check top half points.
+      if (y < POINT_HEIGHT) {
+        let col = Math.floor(x / POINT_WIDTH);
+        pointIndex = 12 + col;
+      } else if (y > BOARD_HEIGHT - POINT_HEIGHT) {
+        // For bottom half, displayed reversed.
+        let col = Math.floor(x / POINT_WIDTH);
+        pointIndex = 11 - col;
+      } else {
+        return;
+      }
+      // If no checker selected, select if the clicked point has one of current player's pieces.
       if (selectedPoint === null) {
         if (board[pointIndex].length > 0 && board[pointIndex][0] === currentPlayer) {
           selectedPoint = pointIndex;
-          e.currentTarget.classList.add("highlight");
-          messageEl.textContent = currentPlayer + " selected point " + (pointIndex + 1) +
-            ". Now click a die to move that many spaces.";
+          message("Selected point " + (pointIndex+1) + ". Choose a move.");
+        }
+      } else {
+        // If already selected, check if clicked point is a legal destination.
+        const legalMoves = getLegalMovesForPoint(selectedPoint);
+        const move = legalMoves.find(m => m.to === pointIndex);
+        if (move) {
+          executeMove(move);
+          selectedPoint = null;
+          redraw();
+          endTurnIfNoMoves();
+        } else {
+          selectedPoint = null;
+          message("Selection cleared. Select a checker to move.");
         }
       }
+    });
+    
+    /************ Message Helper ************/
+    function message(text) {
+      document.getElementById("diceDisplay").textContent = "Dice: " + (movesRemaining.length ? movesRemaining.join(", ") : "--");
+      document.getElementById("turnDisplay").textContent = "Turn: " + currentPlayer.charAt(0).toUpperCase() + currentPlayer.slice(1);
+      // Also update a message overlay or bottom bar if desired.
+      // For simplicity, we'll use the bottom bar.
+      document.getElementById("bottomBar").style.display = "flex";
+      document.getElementById("bottomBar").textContent = text;
     }
-
-    // Handle die click: attempt to move selected checker using that die.
-    function handleDieClick(e) {
-      if (selectedPoint === null) return;
-      const dieValue = parseInt(e.currentTarget.textContent);
-      // Check if move is legal.
-      if (!isLegalMove(selectedPoint, dieValue)) {
-        messageEl.textContent = "Illegal move from point " + (selectedPoint + 1) +
-          " using die " + dieValue + ". Select another die.";
+    
+    /************ AI Move ************/
+    function aiTurn() {
+      // Simple AI: choose a random legal move.
+      const legal = getAllLegalMoves();
+      if (legal.length === 0) {
+        message(currentPlayer + " has no moves.");
+        swapTurn();
         return;
       }
-      // Execute the move.
-      executeMove(selectedPoint, dieValue);
-      selectedPoint = null;
-      drawBoard();
-      // Check if moves remain.
-      if (movesRemaining.length === 0) {
-        // End turn.
-        currentPlayer = (currentPlayer === "red") ? "blue" : "red";
-        messageEl.textContent = currentPlayer + "'s turn. Click 'Roll Dice' to continue.";
-      } else {
-        messageEl.textContent = currentPlayer + "'s turn. Remaining moves: " + movesRemaining.join(", ");
-      }
+      const move = legal[Math.floor(Math.random() * legal.length)];
+      setTimeout(() => {
+        executeMove(move);
+        redraw();
+        endTurnIfNoMoves();
+      }, 1000);
     }
-
-    // Attach event listeners to points and dice.
-    function attachEventListeners() {
-      const pointEls = document.querySelectorAll(".point");
-      pointEls.forEach(el => {
-        el.addEventListener("click", handlePointClick);
-      });
-      die1El.addEventListener("click", handleDieClick);
-      die2El.addEventListener("click", handleDieClick);
-      rollBtn.addEventListener("click", rollDice);
+    
+    /************ Overlay & Menu Management ************/
+    function hideAllScreens() {
+      menuScreen.style.display = "none";
+      colorScreen.style.display = "none";
+      difficultyScreen.style.display = "none";
+      instructionsScreen.style.display = "none";
+      gameOverScreen.style.display = "none";
+      bottomBar.style.display = "none";
     }
-
-    // Initialize and start game
+    
+    function showMenu() {
+      hideAllScreens();
+      gameState = "menu";
+      menuScreen.style.display = "flex";
+    }
+    
+    function showColorChoice() {
+      hideAllScreens();
+      gameState = "color_choice";
+      colorScreen.style.display = "flex";
+    }
+    
+    function showDifficultyChoice() {
+      hideAllScreens();
+      gameState = "difficulty_choice";
+      difficultyScreen.style.display = "flex";
+    }
+    
+    function showInstructions() {
+      hideAllScreens();
+      gameState = "instructions";
+      instructionsScreen.style.display = "flex";
+    }
+    
+    function showGameOver() {
+      hideAllScreens();
+      gameState = "game_over";
+      gameOverScreen.style.display = "flex";
+    }
+    
+    /************ Button Handlers ************/
+    document.getElementById("newGameBtn").onclick = showColorChoice;
+    document.getElementById("instructionsBtn").onclick = showInstructions;
+    document.getElementById("redSideBtn").onclick = () => {
+      playerSide = "red";
+      currentPlayer = "red";
+      showDifficultyChoice();
+    };
+    document.getElementById("whiteSideBtn").onclick = () => {
+      playerSide = "white";
+      currentPlayer = "white";
+      showDifficultyChoice();
+    };
+    document.getElementById("easyBtn").onclick = () => {
+      difficulty = "easy";
+      startGame();
+    };
+    document.getElementById("mediumBtn").onclick = () => {
+      difficulty = "medium";
+      startGame();
+    };
+    document.getElementById("hardBtn").onclick = () => {
+      difficulty = "hard";
+      startGame();
+    };
+    document.getElementById("gameOverNewGameBtn").onclick = showColorChoice;
+    
+    /************ Start Game ************/
     function startGame() {
+      hideAllScreens();
+      gameState = "playing";
       initBoard();
-      createBoardUI();
-      attachEventListeners();
-      drawBoard();
-      messageEl.textContent = "Click 'Roll Dice' to begin.";
+      dice = [];
+      movesRemaining = [];
+      selectedPoint = null;
+      // Roll dice for first turn.
+      rollDice();
+      redraw();
     }
-
-    // Start the game once the page loads
-    startGame();
-
-    /******************************************************************
-     * Note:
-     * This simplified Backgammon game does not implement:
-     *  - Bearing off.
-     *  - Re-entry from the bar.
-     *  - Doubling cube.
-     *  - Complex legal move selection and forced moves.
-     *
-     * It is intended as a starting point. Extensive testing and debugging
-     * are recommended before using this as a full-featured game.
-     ******************************************************************/
+    
+    /************ Main Loop ************/
+    function mainLoop() {
+      redraw();
+      // If it's AI's turn (opponent not matching playerSide), then execute AI move.
+      if (gameState === "playing" && currentPlayer !== playerSide) {
+        aiTurn();
+      }
+      requestAnimationFrame(mainLoop);
+    }
+    
+    // Start the main loop and show the menu initially.
+    mainLoop();
+    showMenu();
   </script>
 </body>
 </html>
