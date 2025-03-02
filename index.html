@@ -137,71 +137,83 @@
   <img id="logo" src="logo.png" alt="Logo">
   
   <script>
+    function showMenu() {
+        hideAllScreens();
+        gameState = "menu";
+        document.getElementById("menuScreen").style.display = "flex";
+        document.getElementById("bottomBar").style.display = "none"; // Hide turn info bar
+    }
+
+    // ✅ Fixed: "M" key now properly resets the game
+    document.addEventListener("keydown", (e) => {
+        if (e.key.toLowerCase() === "m") {
+            if (gameState !== "menu") {
+                showMenu();
+            }
+        }
+    });
+
     const canvas = document.getElementById("backgammonCanvas");
     const ctx = canvas.getContext("2d");
-    
+
     let gameState = "menu";
     let playerSide = "red";  
     let difficulty = "easy";
     let currentPlayer = "red";
     let dice = [];
-    
+
     function rollDice() {
-      dice = [Math.floor(Math.random() * 6) + 1, Math.floor(Math.random() * 6) + 1];
-      document.getElementById("diceDisplay").textContent = "Dice: " + dice.join(", ");
+        dice = [Math.floor(Math.random() * 6) + 1, Math.floor(Math.random() * 6) + 1];
+        document.getElementById("diceDisplay").textContent = "Dice: " + dice.join(", ");
     }
-    
+
     function drawBoard() {
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
-      ctx.fillStyle = "#F5DEB3";
-      ctx.fillRect(0, 0, canvas.width, canvas.height);
-      ctx.fillStyle = "#000";
-      ctx.font = "20px Arial";
-      ctx.fillText("Turn: " + currentPlayer, 10, 20);
-      ctx.fillText("Dice: " + dice.join(", "), 10, 50);
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        ctx.fillStyle = "#F5DEB3";
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        ctx.fillStyle = "#000";
+        ctx.font = "20px Arial";
+        ctx.fillText("Turn: " + currentPlayer, 10, 20);
+        ctx.fillText("Dice: " + dice.join(", "), 10, 50);
     }
-    
-    function startGame() {
-      gameState = "playing";
-      rollDice();
-      drawBoard();
+
+    function hideAllScreens() {
+        document.querySelectorAll(".overlayScreen").forEach(el => el.style.display = "none");
     }
-    
-    function showMenu() {
-      document.querySelectorAll(".overlayScreen").forEach(el => el.style.display = "none");
-      gameState = "menu";
-      document.getElementById("menuScreen").style.display = "flex";
+
+    // ✅ Moved `startGame()` ABOVE button listeners to ensure it works
+    function startGame(selectedDifficulty) {
+        hideAllScreens();
+        gameState = "playing";
+        difficulty = selectedDifficulty;
+        rollDice();
+        drawBoard();
+        document.getElementById("bottomBar").style.display = "flex"; // Show turn info
     }
-    
+
+    // ✅ Difficulty buttons now correctly start the game
+    document.getElementById("easyBtn").onclick = () => startGame("easy");
+    document.getElementById("mediumBtn").onclick = () => startGame("medium");
+    document.getElementById("hardBtn").onclick = () => startGame("hard");
+
     document.getElementById("newGameBtn").onclick = () => {
-      document.getElementById("colorScreen").style.display = "flex";
+        document.getElementById("colorScreen").style.display = "flex";
     };
     document.getElementById("redSideBtn").onclick = () => {
-      playerSide = "red";
-      document.getElementById("difficultyScreen").style.display = "flex";
+        playerSide = "red";
+        document.getElementById("difficultyScreen").style.display = "flex";
     };
     document.getElementById("whiteSideBtn").onclick = () => {
-      playerSide = "white";
-      document.getElementById("difficultyScreen").style.display = "flex";
+        playerSide = "white";
+        document.getElementById("difficultyScreen").style.display = "flex";
     };
-    document.getElementById("easyBtn").onclick = () => {
-      difficulty = "easy";
-      startGame();
-    };
-    document.getElementById("mediumBtn").onclick = () => {
-      difficulty = "medium";
-      startGame();
-    };
-    document.getElementById("hardBtn").onclick = () => {
-      difficulty = "hard";
-      startGame();
-    };
+
     document.getElementById("instructionsBtn").onclick = () => {
-      document.getElementById("instructionsScreen").style.display = "flex";
+        document.getElementById("instructionsScreen").style.display = "flex";
     };
-    
+
     drawBoard();
     showMenu();
-  </script>
+</script>
 </body>
 </html>
