@@ -17,21 +17,42 @@
       margin: 1rem 0 0.5rem;
       text-align: center;
     }
+    /* Main container holds the board and side areas */
+    #mainContainer {
+      display: flex;
+      flex-direction: row;
+      align-items: flex-start;
+    }
+    /* Board container */
     #gameContainer {
       position: relative;
       width: 720px;
-      max-width: 100%;
-    }
-    canvas {
-      display: block;
+      height: 800px;
       background: #f5f5f5;
-      width: 100%;
-      height: auto;
     }
-    /* Dice area (completely off the board) */
+    /* Side container (for dice and bar) */
+    #sideContainer {
+      display: flex;
+      flex-direction: column;
+      margin-left: 20px;
+    }
+    /* Dice area styles */
     #diceArea {
-      margin-top: 20px;
       text-align: center;
+      margin-bottom: 20px;
+    }
+    #diceCanvas {
+      background: #fff;
+      border: 2px solid #000;
+    }
+    /* Bar area styles */
+    #barArea {
+      text-align: center;
+    }
+    #barCanvas {
+      background: #fff;
+      border: 2px solid #000;
+      margin-top: 10px;
     }
     /* Overlay screens */
     .overlayScreen {
@@ -88,60 +109,65 @@
   </style>
 </head>
 <body>
-  <div id="gameContainer">
-    <!-- MENU SCREEN -->
-    <div id="menuScreen" class="overlayScreen" style="display: flex;">
-      <h1 style="margin:0;">Another Product Invented<br>Backgammon</h1>
-      <button id="newGameBtn">New Game</button>
-      <button id="instructionsBtn">Instructions</button>
-    </div>
-    <!-- COLOR CHOICE SCREEN -->
-    <div id="colorScreen" class="overlayScreen">
-      <p>Choose Your Color:</p>
-      <button id="whiteSideBtn">White [W]</button>
-      <button id="blackSideBtn">Black [B]</button>
-      <p>You can also press W or B on your keyboard.</p>
-    </div>
-    <!-- DIFFICULTY SCREEN -->
-    <div id="difficultyScreen" class="overlayScreen">
-      <p>Select Difficulty:</p>
-      <button id="easyBtn">Easy [E]</button>
-      <button id="mediumBtn">Medium [M]</button>
-      <button id="hardBtn">Hard [H]</button>
-      <p>You can also press E, M, or H on your keyboard.</p>
-    </div>
-    <!-- INSTRUCTIONS SCREEN -->
-    <div id="instructionsScreen" class="overlayScreen">
-      <h2>How to Play Backgammon</h2>
-      <p>
-        The objective is to move all your checkers to your home board and bear them off.
-        On your turn, roll the dice and move your checkers according to the dice values.
-        You may hit an opponent's single checker and send it to the bar.
-        If you have checkers on the bar, you must re-enter them before making other moves.
-        Bear off your checkers once all are in your home board.
-      </p>
-      <p>Press [M] to return to the Main Menu.</p>
-    </div>
-    <!-- GAME OVER SCREEN -->
-    <div id="gameOverScreen" class="overlayScreen">
-      <h2 id="gameOverText"></h2>
-      <button id="gameOverNewGameBtn">New Game</button>
-      <p>Press [M] to return to the Main Menu.</p>
-    </div>
-    <!-- Backgammon Canvas -->
-    <canvas id="backgammonCanvas" width="720" height="800"></canvas>
+  <!-- Overlay Screens -->
+  <div id="menuScreen" class="overlayScreen" style="display: flex;">
+    <h1 style="margin:0;">Another Product Invented<br>Backgammon</h1>
+    <button id="newGameBtn">New Game</button>
+    <button id="instructionsBtn">Instructions</button>
+  </div>
+  <div id="colorScreen" class="overlayScreen">
+    <p>Choose Your Color:</p>
+    <button id="whiteSideBtn">White [W]</button>
+    <button id="blackSideBtn">Black [B]</button>
+    <p>You can also press W or B on your keyboard.</p>
+  </div>
+  <div id="difficultyScreen" class="overlayScreen">
+    <p>Select Difficulty:</p>
+    <button id="easyBtn">Easy [E]</button>
+    <button id="mediumBtn">Medium [M]</button>
+    <button id="hardBtn">Hard [H]</button>
+    <p>You can also press E, M, or H on your keyboard.</p>
+  </div>
+  <div id="instructionsScreen" class="overlayScreen">
+    <h2>How to Play Backgammon</h2>
+    <p>
+      The objective is to move all your checkers to your home board and bear them off.
+      On your turn, roll the dice and move your checkers according to the dice values.
+      You may hit an opponent's single checker and send it to the bar.
+      If you have checkers on the bar, you must re-enter them before making other moves.
+      Bear off your checkers once all are in your home board.
+    </p>
+    <p>Press [M] to return to the Main Menu.</p>
+  </div>
+  <div id="gameOverScreen" class="overlayScreen">
+    <h2 id="gameOverText"></h2>
+    <button id="gameOverNewGameBtn">New Game</button>
+    <p>Press [M] to return to the Main Menu.</p>
   </div>
 
-  <!-- Dedicated Dice Area (off the board) -->
-  <div id="diceArea">
-    <button id="rollDiceBtn" style="display:none;">Roll Dice</button>
-    <br>
-    <canvas id="diceCanvas" width="150" height="70"></canvas>
+  <!-- Main Container: Board and Side Areas -->
+  <div id="mainContainer">
+    <!-- Board Container -->
+    <div id="gameContainer">
+      <canvas id="boardCanvas" width="720" height="800"></canvas>
+    </div>
+    <!-- Side Container (Dice + Bar) -->
+    <div id="sideContainer">
+      <div id="diceArea">
+        <button id="rollDiceBtn" style="display:none;">Roll Dice</button>
+        <br>
+        <canvas id="diceCanvas" width="150" height="70"></canvas>
+      </div>
+      <div id="barArea">
+        <h3>Bar</h3>
+        <canvas id="barCanvas" width="150" height="200"></canvas>
+      </div>
+    </div>
   </div>
 
   <!-- Logo -->
   <img id="logo" src="logo.png" alt="Logo">
-  <!-- Loading Overlay with Spinner -->
+  <!-- Loading Overlay -->
   <div id="loadingOverlay">
     <div class="spinner"></div>
     <p>Processing...</p>
@@ -161,11 +187,14 @@
     };
 
     /************ Global Variables & Constants ************/
-    const boardCanvas = document.getElementById("backgammonCanvas");
+    const boardCanvas = document.getElementById("boardCanvas");
     const ctx = boardCanvas.getContext("2d");
 
     const diceCanvas = document.getElementById("diceCanvas");
     const diceCtx = diceCanvas.getContext("2d");
+
+    const barCanvas = document.getElementById("barCanvas");
+    const barCtx = barCanvas.getContext("2d");
 
     const menuScreen = document.getElementById("menuScreen");
     const instructionsScreen = document.getElementById("instructionsScreen");
@@ -187,10 +216,9 @@
     let aiThinking = false;
     let borneOff = { w: 0, b: 0 };
 
-    // Board representation: Array of 24 points (index 0 = point 1, index 23 = point 24)
-    // Each point: { owner: 'w' or 'b', count: number }
+    // The board is represented as 24 points (indices 0-11 for bottom, 12-23 for top)
     let board = new Array(24).fill(null);
-    // Bar for hit checkers: { w: number, b: number }
+    // The bar is separate:
     let bar = { w: 0, b: 0 };
 
     /************ Game Initialization ************/
@@ -199,16 +227,15 @@
         board.fill(null);
         borneOff = { w: 0, b: 0 };
         bar = { w: 0, b: 0 };
-        // White checkers
+        // Standard backgammon starting positions
         board[23] = { owner: 'w', count: 2 };  // Point 24
         board[12] = { owner: 'w', count: 5 };  // Point 13
         board[7]  = { owner: 'w', count: 3 };  // Point 8
         board[5]  = { owner: 'w', count: 5 };  // Point 6
-        // Black checkers
-        board[0]  = { owner: 'b', count: 2 };   // Point 1
-        board[11] = { owner: 'b', count: 5 };   // Point 12
-        board[16] = { owner: 'b', count: 3 };   // Point 17
-        board[18] = { owner: 'b', count: 5 };   // Point 19
+        board[0]  = { owner: 'b', count: 2 };  // Point 1
+        board[11] = { owner: 'b', count: 5 };  // Point 12
+        board[16] = { owner: 'b', count: 3 };  // Point 17
+        board[18] = { owner: 'b', count: 5 };  // Point 19
         currentTurn = "w";
         currentDice = [];
         selectedPoint = null;
@@ -218,7 +245,7 @@
       }
     }
 
-    /************ Dice Rolling & Drawing (Dedicated Area) ************/
+    /************ Dice Rolling & Drawing ************/
     function rollDice() {
       try {
         const die1 = Math.floor(Math.random() * 6) + 1;
@@ -240,11 +267,11 @@
       const diceSize = 60;
       const spacing = 10;
       for (let i = 0; i < diceToShow.length; i++) {
-        drawDieOnDiceCanvas(diceCtx, i * (diceSize + spacing), 0, diceSize, diceToShow[i]);
+        drawDieOnCanvas(diceCtx, i * (diceSize + spacing), 0, diceSize, diceToShow[i]);
       }
     }
 
-    function drawDieOnDiceCanvas(ctx, x, y, size, value) {
+    function drawDieOnCanvas(ctx, x, y, size, value) {
       ctx.fillStyle = "#fff";
       ctx.fillRect(x, y, size, size);
       ctx.strokeStyle = "#000";
@@ -313,51 +340,42 @@
       }
     };
 
-    /************ Board & Piece Drawing ************/
+    /************ Board Drawing (Without Integrated Bar) ************/
+    // In this version the board is drawn continuously (12 points per half)
     function drawBoard() {
       try {
         ctx.clearRect(0, 0, WIDTH, HEIGHT);
-        ctx.fillStyle = "#f5f5f5";
-        ctx.fillRect(0, 0, WIDTH, HEIGHT);
+        // Board parameters
         const boardMargin = 20;
         const boardWidth = WIDTH - 2 * boardMargin;
         const boardHeight = 600;
         const boardTop = 100;
-        // Draw board background
+        ctx.fillStyle = "#f5f5f5";
+        ctx.fillRect(0, 0, WIDTH, HEIGHT);
+        // Draw board background (green)
         ctx.fillStyle = "#006400";
         ctx.fillRect(boardMargin, boardTop, boardWidth, boardHeight);
-        // Draw central bar
-        const barWidth = 24;
-        const barX = boardMargin + boardWidth / 2 - barWidth / 2;
-        ctx.fillStyle = "#8B4513";
-        ctx.fillRect(barX, boardTop, barWidth, boardHeight);
-        const pointWidth = (boardWidth - barWidth) / 12;
+        // Calculate point dimensions (no central bar)
+        const pointWidth = boardWidth / 12;
         const pointHeight = boardHeight / 2;
-        // Draw top half (Points 13 to 24: indices 12-23)
+        // Draw top half (points 24 to 13; board indices 23 down to 12)
         for (let i = 0; i < 12; i++) {
-          let x;
-          if (i < 6) {
-            x = boardMargin + (5 - i) * pointWidth;
-          } else {
-            x = boardMargin + boardWidth - (i - 6 + 1) * pointWidth;
-          }
-          drawTriangle(x, boardTop, pointWidth, pointHeight, "down", (i % 2 === 0) ? "#deb887" : "#d2b48c");
+          let boardIndex = 23 - i; // so i=0 => point 24, i=11 => point 13
+          let tri = getTriangleCoordinates(boardIndex);
+          drawTriangle(tri.x, tri.y, tri.width, tri.height, tri.direction, (i % 2 === 0) ? "#deb887" : "#d2b48c");
         }
-        // Draw bottom half (Points 1 to 12: indices 0-11)
+        // Draw bottom half (points 1 to 12; board indices 0 to 11)
         for (let i = 0; i < 12; i++) {
-          let x;
-          if (i < 6) {
-            x = boardMargin + i * pointWidth;
-          } else {
-            x = boardMargin + boardWidth - (i - 6 + 1) * pointWidth;
-          }
-          drawTriangle(x, boardTop + boardHeight - pointHeight, pointWidth, pointHeight, "up", (i % 2 === 0) ? "#deb887" : "#d2b48c");
+          let boardIndex = i; 
+          let tri = getTriangleCoordinates(boardIndex);
+          drawTriangle(tri.x, tri.y, tri.width, tri.height, tri.direction, (i % 2 === 0) ? "#deb887" : "#d2b48c");
         }
       } catch (err) {
         logBug("drawBoard", err);
       }
     }
 
+    // Draw a triangle given its coordinates
     function drawTriangle(x, y, width, height, direction, color) {
       try {
         ctx.fillStyle = color;
@@ -380,14 +398,41 @@
       }
     }
 
+    // Given a board point index (0–23), return the coordinates of its triangle.
+    function getTriangleCoordinates(pointIndex) {
+      const boardMargin = 20;
+      const boardWidth = WIDTH - 2 * boardMargin;
+      const boardTop = 100;
+      const boardHeight = 600;
+      const pointWidth = boardWidth / 12;
+      const pointHeight = boardHeight / 2;
+      let x, y, direction;
+      if (pointIndex >= 12 && pointIndex <= 23) {
+        // Top half: points 24 (index 23) to 13 (index 12)
+        let indexInHalf = 23 - pointIndex; // 0 for point 24, 11 for point 13
+        x = boardMargin + indexInHalf * pointWidth;
+        y = boardTop;
+        direction = "down";
+      } else if (pointIndex >= 0 && pointIndex <= 11) {
+        // Bottom half: points 1 (index 0) to 12 (index 11)
+        let indexInHalf = pointIndex;
+        x = boardMargin + indexInHalf * pointWidth;
+        y = boardTop + boardHeight - pointHeight;
+        direction = "up";
+      } else {
+        return null;
+      }
+      return { x, y, width: pointWidth, height: pointHeight, direction };
+    }
+
+    /************ Pieces Drawing ************/
     function drawPieces() {
       try {
         const boardMargin = 20;
         const boardWidth = WIDTH - 2 * boardMargin;
         const boardTop = 100;
         const boardHeight = 600;
-        const barWidth = 24;
-        const pointWidth = (boardWidth - barWidth) / 12;
+        const pointWidth = boardWidth / 12;
         const pointHeight = boardHeight / 2;
         let pieceRadius = Math.min(pointWidth, pointHeight) / 4;
         ctx.font = "20px sans-serif";
@@ -395,65 +440,30 @@
         ctx.textBaseline = "middle";
         for (let i = 0; i < 24; i++) {
           if (!board[i]) continue;
-          let point = board[i];
-          let isTop = i >= 12;
-          let indexInHalf = isTop ? i - 12 : i;
-          let x;
-          if (isTop) {
-            if (indexInHalf < 6) {
-              x = boardMargin + (5 - indexInHalf) * pointWidth;
-            } else {
-              x = boardMargin + boardWidth - ((indexInHalf - 6) + 1) * pointWidth;
-            }
-          } else {
-            if (indexInHalf < 6) {
-              x = boardMargin + indexInHalf * pointWidth;
-            } else {
-              x = boardMargin + boardWidth - ((indexInHalf - 6) + 1) * pointWidth;
-            }
-          }
-          let centerX = x + pointWidth / 2;
+          let tri = getTriangleCoordinates(i);
+          let centerX = tri.x + tri.width / 2;
           let spacing = pieceRadius * 2.2;
+          // For top half, stack downward; bottom half, stack upward.
           for (let j = 0; j < board[i].count; j++) {
             let centerY;
-            if (isTop) {
+            if (i >= 12) {
               centerY = boardTop + pieceRadius + j * spacing;
             } else {
               centerY = boardTop + boardHeight - pieceRadius - j * spacing;
             }
             ctx.beginPath();
             ctx.arc(centerX, centerY, pieceRadius, 0, Math.PI * 2);
-            ctx.fillStyle = (point.owner === 'w') ? "#fff" : "#000";
+            ctx.fillStyle = (board[i].owner === 'w') ? "#fff" : "#000";
             ctx.fill();
             ctx.strokeStyle = "#000";
             ctx.stroke();
           }
           if (board[i].count > 5) {
             ctx.fillStyle = "red";
-            ctx.fillText(board[i].count, centerX, isTop ? boardTop + pieceRadius + 5 * spacing : boardTop + boardHeight - pieceRadius - 5 * spacing);
+            ctx.fillText(board[i].count, centerX, (i >= 12) ? boardTop + pieceRadius + 5 * spacing : boardTop + boardHeight - pieceRadius - 5 * spacing);
           }
         }
-        // Draw bar pieces
-        const barX = boardMargin + boardWidth / 2;
-        for (let j = 0; j < bar.w; j++) {
-          let centerX = barX + barWidth / 2;
-          let centerY = boardTop + pieceRadius + j * (pieceRadius * 2.2);
-          ctx.beginPath();
-          ctx.arc(centerX, centerY, pieceRadius, 0, Math.PI * 2);
-          ctx.fillStyle = "#fff";
-          ctx.fill();
-          ctx.stroke();
-        }
-        for (let j = 0; j < bar.b; j++) {
-          let centerX = barX + barWidth / 2;
-          let centerY = boardTop + boardHeight - pieceRadius - j * (pieceRadius * 2.2);
-          ctx.beginPath();
-          ctx.arc(centerX, centerY, pieceRadius, 0, Math.PI * 2);
-          ctx.fillStyle = "#000";
-          ctx.fill();
-          ctx.stroke();
-        }
-        // Display borne off counts
+        // Display borne-off counts (drawn on the board)
         ctx.fillStyle = "#000";
         ctx.fillText("White Borne Off: " + borneOff.w, WIDTH - 150, boardTop + boardHeight + 30);
         ctx.fillText("Black Borne Off: " + borneOff.b, WIDTH - 150, boardTop - 30);
@@ -462,56 +472,56 @@
       }
     }
 
-    /************ Highlighting Selected Piece & Legal Moves ************/
-    function getTriangleCoordinates(pointIndex) {
-      const boardMargin = 20;
-      const boardWidth = WIDTH - 2 * boardMargin;
-      const boardHeight = 600;
-      const boardTop = 100;
-      const barWidth = 24;
-      const pointWidth = (boardWidth - barWidth) / 12;
-      const pointHeight = boardHeight / 2;
-      let isTop, indexInHalf, x, y, direction;
-      if (pointIndex >= 12 && pointIndex <= 23) {
-        isTop = true;
-        indexInHalf = pointIndex - 12;
-        direction = "down";
-        if (indexInHalf < 6) {
-          x = boardMargin + (5 - indexInHalf) * pointWidth;
-          y = boardTop;
-        } else {
-          x = boardMargin + boardWidth - ((indexInHalf - 6) + 1) * pointWidth;
-          y = boardTop;
+    /************ Bar Area Drawing ************/
+    function drawBarPieces() {
+      try {
+        barCtx.clearRect(0, 0, barCanvas.width, barCanvas.height);
+        barCtx.font = "16px sans-serif";
+        barCtx.fillStyle = "#000";
+        barCtx.fillText("Bar", barCanvas.width/2, 20);
+        const pieceRadius = 15;
+        const spacing = pieceRadius * 2.2;
+        // Draw white bar pieces on the top half of bar area
+        for (let j = 0; j < bar.w; j++) {
+          let centerX = barCanvas.width / 2;
+          let centerY = 40 + j * spacing;
+          barCtx.beginPath();
+          barCtx.arc(centerX, centerY, pieceRadius, 0, Math.PI*2);
+          barCtx.fillStyle = "#fff";
+          barCtx.fill();
+          barCtx.strokeStyle = "#000";
+          barCtx.stroke();
         }
-      } else if (pointIndex >= 0 && pointIndex <= 11) {
-        isTop = false;
-        indexInHalf = pointIndex;
-        direction = "up";
-        if (indexInHalf < 6) {
-          x = boardMargin + indexInHalf * pointWidth;
-          y = boardTop + boardHeight - pointHeight;
-        } else {
-          x = boardMargin + boardWidth - ((indexInHalf - 6) + 1) * pointWidth;
-          y = boardTop + boardHeight - pointHeight;
+        // Draw black bar pieces on the bottom half of bar area
+        for (let j = 0; j < bar.b; j++) {
+          let centerX = barCanvas.width / 2;
+          let centerY = barCanvas.height - 40 - j * spacing;
+          barCtx.beginPath();
+          barCtx.arc(centerX, centerY, pieceRadius, 0, Math.PI*2);
+          barCtx.fillStyle = "#000";
+          barCtx.fill();
+          barCtx.strokeStyle = "#000";
+          barCtx.stroke();
         }
-      } else {
-        return null;
+      } catch (err) {
+        logBug("drawBarPieces", err);
       }
-      return { x, y, width: pointWidth, height: pointHeight, direction };
     }
 
+    /************ Highlighting Selected Piece & Legal Moves ************/
     function highlightLegalOptions() {
       if (selectedPoint !== null) {
         const selCoords = getTriangleCoordinates(selectedPoint);
         if (selCoords) {
-          ctx.fillStyle = "rgba(0,255,255,0.5)"; // Cyan overlay for selected piece
+          ctx.fillStyle = "rgba(0,255,255,0.5)"; // Cyan for selected
           ctx.fillRect(selCoords.x, selCoords.y, selCoords.width, selCoords.height);
         }
         legalMoves.forEach(move => {
+          // For bear-off moves, you might highlight a dedicated off-board area (not implemented here)
           if (!move.bearOff) {
             const destCoords = getTriangleCoordinates(move.to);
             if (destCoords) {
-              ctx.fillStyle = "rgba(255,255,0,0.5)"; // Yellow overlay for legal destination
+              ctx.fillStyle = "rgba(255,255,0,0.5)"; // Yellow for legal destination
               ctx.fillRect(destCoords.x, destCoords.y, destCoords.width, destCoords.height);
             }
           }
@@ -519,13 +529,14 @@
       }
     }
 
-    /************ Redraw Function ************/
+    /************ Redraw Everything ************/
     function redrawGame() {
       try {
         drawBoard();
         highlightLegalOptions();
         drawPieces();
         drawDiceOnCanvas();
+        drawBarPieces();
       } catch (err) {
         logBug("redrawGame", err);
       }
@@ -696,6 +707,7 @@
       }
     });
 
+    // Given (x,y) in board canvas, determine which board point was clicked.
     function getPointFromCoordinates(x, y) {
       try {
         const boardMargin = 20;
@@ -703,32 +715,17 @@
         const boardTop = 100;
         const boardHeight = 600;
         if (y < boardTop || y > boardTop + boardHeight) return null;
-        const barWidth = 24;
-        const pointWidth = (boardWidth - barWidth) / 12;
+        const pointWidth = boardWidth / 12;
         let isTop = y < boardTop + boardHeight / 2;
         let pointIndex;
         if (isTop) {
-          if (x < boardMargin || x > boardMargin + boardWidth) return null;
-          if (x < boardMargin + boardWidth/2 - barWidth/2) {
-            let pos = Math.floor((boardMargin + boardWidth/2 - barWidth/2 - x) / pointWidth);
-            pointIndex = 23 - pos;
-          } else if (x > boardMargin + boardWidth/2 + barWidth/2) {
-            let pos = Math.floor((x - (boardMargin + boardWidth/2 + barWidth/2)) / pointWidth);
-            pointIndex = 12 + pos;
-          } else {
-            return null;
-          }
+          // Top half: x goes left to right corresponds to points 24 to 13
+          let pos = Math.floor((x - boardMargin) / pointWidth);
+          pointIndex = 23 - pos;
         } else {
-          if (x < boardMargin || x > boardMargin + boardWidth) return null;
-          if (x < boardMargin + boardWidth/2 - barWidth/2) {
-            let pos = Math.floor((x - boardMargin) / pointWidth);
-            pointIndex = pos;
-          } else if (x > boardMargin + boardWidth/2 + barWidth/2) {
-            let pos = Math.floor((boardMargin + boardWidth - x) / pointWidth);
-            pointIndex = 11 - pos;
-          } else {
-            return null;
-          }
+          // Bottom half: x goes left to right corresponds to points 1 to 12
+          let pos = Math.floor((x - boardMargin) / pointWidth);
+          pointIndex = pos;
         }
         return pointIndex;
       } catch (err) {
