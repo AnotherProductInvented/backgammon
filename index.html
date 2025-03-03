@@ -158,7 +158,7 @@
     let aiThinking = false;
     let borneOff = { w: 0, b: 0 };
 
-    // The board is an array of 24 points (indices 0–11 for bottom, 12–23 for top)
+    // The board is an array of 24 points (indices 0–23)
     let board = new Array(24).fill(null);
     // The bar holds hit checkers:
     let bar = { w: 0, b: 0 };
@@ -366,9 +366,9 @@
     function drawBorneOff() {
       const boardTop = 100, boardHeight = 600;
       const pieceRadius = 20;
-      // Draw white borne-off pieces on left side (e.g., near x = 10)
+      // Draw white borne-off pieces on bottom right.
       for (let i = 0; i < borneOff.w; i++) {
-        let x = 10, y = boardTop + boardHeight - pieceRadius - i * (pieceRadius * 2.2);
+        let x = WIDTH - 30, y = boardTop + boardHeight - pieceRadius - i * (pieceRadius * 2.2);
         ctx.beginPath();
         ctx.arc(x, y, pieceRadius, 0, Math.PI * 2);
         ctx.fillStyle = "#fff";
@@ -376,9 +376,9 @@
         ctx.strokeStyle = "#000";
         ctx.stroke();
       }
-      // Draw black borne-off pieces on right side (e.g., near x = WIDTH - 10)
+      // Draw black borne-off pieces on top right.
       for (let i = 0; i < borneOff.b; i++) {
-        let x = WIDTH - 10, y = boardTop + pieceRadius + i * (pieceRadius * 2.2);
+        let x = WIDTH - 30, y = boardTop + pieceRadius + i * (pieceRadius * 2.2);
         ctx.beginPath();
         ctx.arc(x, y, pieceRadius, 0, Math.PI * 2);
         ctx.fillStyle = "#000";
@@ -470,7 +470,7 @@
     function highlightLegalOptions() {
       if (selectedPoint !== null) {
         if (selectedPoint === "bar") {
-          // Optionally highlight bar area (handled in bar canvas)
+          // Optionally highlight the bar area if needed.
         } else {
           const selCoords = getTriangleCoordinates(selectedPoint);
           if (selCoords) {
@@ -479,7 +479,23 @@
           }
         }
         legalMoves.forEach(move => {
-          if (!move.bearOff) {
+          if (move.bearOff) {
+            // Highlight the bear-off area.
+            const boardTop = 100, boardHeight = 600;
+            const rectWidth = 60, rectHeight = 60;
+            let x, y;
+            if (currentTurn === 'w') {
+              // White bears off at bottom right.
+              x = WIDTH - rectWidth - 20;
+              y = boardTop + boardHeight - rectHeight;
+            } else {
+              // Black bears off at top right.
+              x = WIDTH - rectWidth - 20;
+              y = boardTop;
+            }
+            ctx.fillStyle = "rgba(255,255,0,0.5)";
+            ctx.fillRect(x, y, rectWidth, rectHeight);
+          } else {
             const destCoords = getTriangleCoordinates(move.to);
             if (destCoords) {
               ctx.fillStyle = "rgba(255,255,0,0.5)";
@@ -552,9 +568,11 @@
       for (let die of currentDice) {
         let dest;
         if (currentTurn === 'w') {
-          dest = 24 - die;
+          // White re-enters on the bottom half; rightmost triangle is index 11.
+          dest = 12 - die;
         } else {
-          dest = die - 1;
+          // Black re-enters on the top half; rightmost triangle here is index 12.
+          dest = 12 + (die - 1);
         }
         if (dest < 0 || dest > 23) continue;
         if (!board[dest]) {
