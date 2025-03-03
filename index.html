@@ -67,32 +67,6 @@
       display: block;
       margin: 10px auto;
     }
-    /* Loading overlay with spinner */
-    #loadingOverlay {
-      position: fixed;
-      top: 0; left: 0; right: 0; bottom: 0;
-      background: rgba(0,0,0,0.5);
-      color: #fff;
-      font-size: 24px;
-      display: none;
-      align-items: center;
-      justify-content: center;
-      flex-direction: column;
-      z-index: 1000;
-    }
-    .spinner {
-      border: 8px solid rgba(255,255,255,0.3);
-      border-top: 8px solid #fff;
-      border-radius: 50%;
-      width: 60px;
-      height: 60px;
-      animation: spin 1s linear infinite;
-      margin-bottom: 10px;
-    }
-    @keyframes spin {
-      0% { transform: rotate(0deg); }
-      100% { transform: rotate(360deg); }
-    }
     /* Logo */
     #logo {
       position: fixed;
@@ -160,11 +134,6 @@
 
   <!-- Logo -->
   <img id="logo" src="logo.png" alt="Logo">
-  <!-- Loading Overlay -->
-  <div id="loadingOverlay">
-    <div class="spinner"></div>
-    <p>Processing...</p>
-  </div>
 
   <script>
     /************ Bug Detection & Logging ************/
@@ -196,7 +165,6 @@
     const gameOverScreen = document.getElementById("gameOverScreen");
     const gameOverText = document.getElementById("gameOverText");
     const rollDiceBtn = document.getElementById("rollDiceBtn");
-    const loadingOverlay = document.getElementById("loadingOverlay");
 
     const WIDTH = 720, HEIGHT = 800;
     let gameState = "menu";  // "menu", "instructions", "color_choice", "difficulty_choice", "playing", "game_over"
@@ -243,6 +211,7 @@
       try {
         const die1 = Math.floor(Math.random() * 6) + 1;
         const die2 = Math.floor(Math.random() * 6) + 1;
+        // If doubles, return four identical moves.
         if (die1 === die2) {
           return [die1, die1, die1, die1];
         }
@@ -330,6 +299,7 @@
         drawDiceOnCanvas();
         rollDiceBtn.style.display = "none";
         redrawGame();
+        // If human is playing, they roll and then choose a move.
       }
     };
 
@@ -346,7 +316,7 @@
         // Board background (green)
         ctx.fillStyle = "#006400";
         ctx.fillRect(boardMargin, boardTop, boardWidth, boardHeight);
-        // Calculate dimensions for each point (continuous 24 points)
+        // Dimensions for each point (24 continuous points)
         const pointWidth = boardWidth / 12;
         const pointHeight = boardHeight / 2;
         // Draw top half (points 24 to 13, indices 23 to 12)
@@ -467,6 +437,7 @@
         barCtx.fillText("Bar", barCanvas.width/2, 20);
         const pieceRadius = 15;
         const spacing = pieceRadius * 2.2;
+        // White pieces on top
         for (let j = 0; j < bar.w; j++) {
           let centerX = barCanvas.width / 2;
           let centerY = 40 + j * spacing;
@@ -477,6 +448,7 @@
           barCtx.strokeStyle = "#000";
           barCtx.stroke();
         }
+        // Black pieces on bottom
         for (let j = 0; j < bar.b; j++) {
           let centerX = barCanvas.width / 2;
           let centerY = barCanvas.height - 40 - j * spacing;
@@ -497,14 +469,14 @@
       if (selectedPoint !== null) {
         const selCoords = getTriangleCoordinates(selectedPoint);
         if (selCoords) {
-          ctx.fillStyle = "rgba(0,255,255,0.5)";
+          ctx.fillStyle = "rgba(0,255,255,0.5)"; // Cyan for selected
           ctx.fillRect(selCoords.x, selCoords.y, selCoords.width, selCoords.height);
         }
         legalMoves.forEach(move => {
           if (!move.bearOff) {
             const destCoords = getTriangleCoordinates(move.to);
             if (destCoords) {
-              ctx.fillStyle = "rgba(255,255,0,0.5)";
+              ctx.fillStyle = "rgba(255,255,0,0.5)"; // Yellow for legal destination
               ctx.fillRect(destCoords.x, destCoords.y, destCoords.width, destCoords.height);
             }
           }
@@ -618,6 +590,7 @@
             }
           }
         }
+        // Remove the used die
         const index = currentDice.indexOf(move.die);
         if (index !== -1) {
           currentDice.splice(index, 1);
@@ -652,14 +625,21 @@
         const mx = e.clientX - rect.left;
         const my = e.clientY - rect.top;
         let clickedPoint = getPointFromCoordinates(mx, my);
+        // If checkers are on the bar, enforce re-entry.
         if (bar[currentTurn] > 0) {
           let reEntryMoves = getLegalMovesFromBar();
           if (reEntryMoves.length === 0) return;
           const move = reEntryMoves.find(m => m.to === clickedPoint);
           if (move) {
-            makeMove(move);
+            // Simulate highlighting for re-entry move
+            selectedPoint = "bar";
+            legalMoves = [move];
             redrawGame();
-            if (currentDice.length === 0) endTurn();
+            setTimeout(() => {
+              makeMove(move);
+              redrawGame();
+              if (currentDice.length === 0) endTurn();
+            }, 1500);
           }
           return;
         }
@@ -675,9 +655,15 @@
         } else {
           const move = legalMoves.find(m => m.to === clickedPoint);
           if (move) {
-            makeMove(move);
+            // Highlight the move briefly before making it
+            selectedPoint = move.from;
+            legalMoves = [move];
             redrawGame();
-            if (!checkGameOver() && currentDice.length === 0) endTurn();
+            setTimeout(() => {
+              makeMove(move);
+              redrawGame();
+              if (!checkGameOver() && currentDice.length === 0) endTurn();
+            }, 1500);
           } else {
             selectedPoint = null;
             legalMoves = [];
@@ -724,14 +710,15 @@
       }
     }
 
-    // Updated AI turn: Processes each dice move sequentially with a delay.
+    // Updated AI turn: Simulate a human-like sequence of dice roll and move highlights.
     function aiTurn() {
       aiThinking = true;
-      loadingOverlay.style.display = "flex";
-      // Set delay (in milliseconds) based on difficulty.
+      // Remove processing overlay; instead, the AI will roll dice visibly.
       let delay = (difficulty === "hard" ? 3000 : (difficulty === "medium" ? 2500 : 2000));
       setTimeout(() => {
         currentDice = rollDice();
+        drawDiceOnCanvas();
+        // Recursive function to process one move at a time.
         function aiMakeMove() {
           let possibleMoves = [];
           if (bar[currentTurn] > 0) {
@@ -747,31 +734,38 @@
             }
           }
           if (possibleMoves.length > 0) {
+            // Pick a move at random.
             let move = possibleMoves[Math.floor(Math.random() * possibleMoves.length)];
-            makeMove(move);
+            // Highlight the move as if selecting a piece.
+            selectedPoint = move.from;
+            legalMoves = [move];
             redrawGame();
+            // Wait a bit before actually making the move.
             setTimeout(() => {
+              makeMove(move);
+              redrawGame();
+              // Continue processing if there are remaining dice.
               if (currentDice.length > 0) {
-                aiMakeMove();
+                setTimeout(aiMakeMove, delay);
               } else {
+                // End AI turn.
                 aiThinking = false;
-                loadingOverlay.style.display = "none";
                 currentTurn = (currentTurn === 'w') ? 'b' : 'w';
                 if (currentTurn === playerColor) {
                   rollDiceBtn.style.display = "block";
                 } else {
-                  aiTurn();
+                  setTimeout(aiTurn, delay);
                 }
               }
             }, delay);
           } else {
+            // No legal moves available; end turn.
             aiThinking = false;
-            loadingOverlay.style.display = "none";
             currentTurn = (currentTurn === 'w') ? 'b' : 'w';
             if (currentTurn === playerColor) {
               rollDiceBtn.style.display = "block";
             } else {
-              aiTurn();
+              setTimeout(aiTurn, delay);
             }
           }
         }
