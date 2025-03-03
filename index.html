@@ -28,6 +28,12 @@
       width: 100%;
       height: auto;
     }
+    /* Dice area (completely off the board) */
+    #diceArea {
+      margin-top: 20px;
+      text-align: center;
+    }
+    /* Overlay screens */
     .overlayScreen {
       position: absolute;
       top: 0; left: 0; right: 0; bottom: 0;
@@ -71,7 +77,7 @@
       0% { transform: rotate(0deg); }
       100% { transform: rotate(360deg); }
     }
-    /* Logo placed in bottom-right corner */
+    /* Logo */
     #logo {
       position: fixed;
       bottom: 10px;
@@ -122,11 +128,17 @@
       <button id="gameOverNewGameBtn">New Game</button>
       <p>Press [M] to return to the Main Menu.</p>
     </div>
-    <!-- Roll Dice button appears during play -->
-    <button id="rollDiceBtn" style="position:absolute; top:10px; right:10px; display:none;">Roll Dice</button>
     <!-- Backgammon Canvas -->
     <canvas id="backgammonCanvas" width="720" height="800"></canvas>
   </div>
+
+  <!-- Dedicated Dice Area (off the board) -->
+  <div id="diceArea">
+    <button id="rollDiceBtn" style="display:none;">Roll Dice</button>
+    <br>
+    <canvas id="diceCanvas" width="150" height="70"></canvas>
+  </div>
+
   <!-- Logo -->
   <img id="logo" src="logo.png" alt="Logo">
   <!-- Loading Overlay with Spinner -->
@@ -134,6 +146,7 @@
     <div class="spinner"></div>
     <p>Processing...</p>
   </div>
+
   <script>
     /************ Bug Detection & Logging ************/
     let bugLogs = [];
@@ -148,8 +161,11 @@
     };
 
     /************ Global Variables & Constants ************/
-    const canvas = document.getElementById("backgammonCanvas");
-    const ctx = canvas.getContext("2d");
+    const boardCanvas = document.getElementById("backgammonCanvas");
+    const ctx = boardCanvas.getContext("2d");
+
+    const diceCanvas = document.getElementById("diceCanvas");
+    const diceCtx = diceCanvas.getContext("2d");
 
     const menuScreen = document.getElementById("menuScreen");
     const instructionsScreen = document.getElementById("instructionsScreen");
@@ -167,7 +183,7 @@
     let currentTurn = "w";   // white moves first
     let selectedPoint = null;
     let legalMoves = [];
-    let currentDice = [];    // Example: [3, 5] or [4, 4, 4, 4]
+    let currentDice = [];    // e.g. [3, 5] or [4, 4, 4, 4]
     let aiThinking = false;
     let borneOff = { w: 0, b: 0 };
 
@@ -178,7 +194,6 @@
     let bar = { w: 0, b: 0 };
 
     /************ Game Initialization ************/
-    // Standard backgammon starting positions
     function initBoard() {
       try {
         board.fill(null);
@@ -203,8 +218,7 @@
       }
     }
 
-    /************ Dice Rolling ************/
-    // Roll two dice; if doubles, return four moves.
+    /************ Dice Rolling & Drawing (Dedicated Area) ************/
     function rollDice() {
       try {
         const die1 = Math.floor(Math.random() * 6) + 1;
@@ -218,6 +232,86 @@
         return [];
       }
     }
+
+    function drawDiceOnCanvas() {
+      diceCtx.clearRect(0, 0, diceCanvas.width, diceCanvas.height);
+      if (currentDice.length === 0) return;
+      let diceToShow = currentDice.slice(0, 2);
+      const diceSize = 60;
+      const spacing = 10;
+      for (let i = 0; i < diceToShow.length; i++) {
+        drawDieOnDiceCanvas(diceCtx, i * (diceSize + spacing), 0, diceSize, diceToShow[i]);
+      }
+    }
+
+    function drawDieOnDiceCanvas(ctx, x, y, size, value) {
+      ctx.fillStyle = "#fff";
+      ctx.fillRect(x, y, size, size);
+      ctx.strokeStyle = "#000";
+      ctx.strokeRect(x, y, size, size);
+      ctx.fillStyle = "#000";
+      const dotRadius = size / 10;
+      const centerX = x + size / 2;
+      const centerY = y + size / 2;
+      const positions = {
+        topLeft: { x: x + size * 0.25, y: y + size * 0.25 },
+        topRight: { x: x + size * 0.75, y: y + size * 0.25 },
+        middle: { x: centerX, y: centerY },
+        bottomLeft: { x: x + size * 0.25, y: y + size * 0.75 },
+        bottomRight: { x: x + size * 0.75, y: y + size * 0.75 },
+        middleLeft: { x: x + size * 0.25, y: centerY },
+        middleRight: { x: x + size * 0.75, y: centerY }
+      };
+      function drawDot(pos) {
+        ctx.beginPath();
+        ctx.arc(pos.x, pos.y, dotRadius, 0, Math.PI * 2);
+        ctx.fill();
+      }
+      switch(value) {
+        case 1:
+          drawDot(positions.middle);
+          break;
+        case 2:
+          drawDot(positions.topLeft);
+          drawDot(positions.bottomRight);
+          break;
+        case 3:
+          drawDot(positions.topLeft);
+          drawDot(positions.middle);
+          drawDot(positions.bottomRight);
+          break;
+        case 4:
+          drawDot(positions.topLeft);
+          drawDot(positions.topRight);
+          drawDot(positions.bottomLeft);
+          drawDot(positions.bottomRight);
+          break;
+        case 5:
+          drawDot(positions.topLeft);
+          drawDot(positions.topRight);
+          drawDot(positions.middle);
+          drawDot(positions.bottomLeft);
+          drawDot(positions.bottomRight);
+          break;
+        case 6:
+          drawDot(positions.topLeft);
+          drawDot(positions.topRight);
+          drawDot(positions.middleLeft);
+          drawDot(positions.middleRight);
+          drawDot(positions.bottomLeft);
+          drawDot(positions.bottomRight);
+          break;
+      }
+    }
+
+    rollDiceBtn.onclick = function() {
+      if (currentDice.length === 0) {
+        currentDice = rollDice();
+        drawDiceOnCanvas();
+        rollDiceBtn.style.display = "none";
+        redrawGame();
+      }
+    };
 
     /************ Board & Piece Drawing ************/
     function drawBoard() {
@@ -239,7 +333,7 @@
         ctx.fillRect(barX, boardTop, barWidth, boardHeight);
         const pointWidth = (boardWidth - barWidth) / 12;
         const pointHeight = boardHeight / 2;
-        // Top half: Points 13 to 24 (indices 12-23)
+        // Draw top half (Points 13 to 24: indices 12-23)
         for (let i = 0; i < 12; i++) {
           let x;
           if (i < 6) {
@@ -249,7 +343,7 @@
           }
           drawTriangle(x, boardTop, pointWidth, pointHeight, "down", (i % 2 === 0) ? "#deb887" : "#d2b48c");
         }
-        // Bottom half: Points 1 to 12 (indices 0-11)
+        // Draw bottom half (Points 1 to 12: indices 0-11)
         for (let i = 0; i < 12; i++) {
           let x;
           if (i < 6) {
@@ -259,14 +353,11 @@
           }
           drawTriangle(x, boardTop + boardHeight - pointHeight, pointWidth, pointHeight, "up", (i % 2 === 0) ? "#deb887" : "#d2b48c");
         }
-        // Draw the dice in the center of the board area (so they don't interfere with checkers)
-        drawDiceFaces(boardMargin, boardWidth, boardTop, boardHeight);
       } catch (err) {
         logBug("drawBoard", err);
       }
     }
 
-    // Draw a triangle (point) on the board.
     function drawTriangle(x, y, width, height, direction, color) {
       try {
         ctx.fillStyle = color;
@@ -289,7 +380,6 @@
       }
     }
 
-    // Draw checkers on the board, on the bar, and show borne off counts.
     function drawPieces() {
       try {
         const boardMargin = 20;
@@ -313,13 +403,13 @@
             if (indexInHalf < 6) {
               x = boardMargin + (5 - indexInHalf) * pointWidth;
             } else {
-              x = boardMargin + boardWidth - (indexInHalf - 6 + 1) * pointWidth;
+              x = boardMargin + boardWidth - ((indexInHalf - 6) + 1) * pointWidth;
             }
           } else {
             if (indexInHalf < 6) {
               x = boardMargin + indexInHalf * pointWidth;
             } else {
-              x = boardMargin + boardWidth - (indexInHalf - 6 + 1) * pointWidth;
+              x = boardMargin + boardWidth - ((indexInHalf - 6) + 1) * pointWidth;
             }
           }
           let centerX = x + pointWidth / 2;
@@ -372,107 +462,76 @@
       }
     }
 
-    // Draw two dice with proper pip representations in a dedicated area in the center of the board.
-    function drawDiceFaces(boardMargin, boardWidth, boardTop, boardHeight) {
-      try {
-        if (currentDice.length === 0) return;
-        let diceToShow = currentDice.slice(0, 2);
-        const diceSize = 60;
-        const spacing = 10;
-        // Calculate a centered area for the dice
-        const diceAreaWidth = diceSize * 2 + spacing;
-        const diceAreaHeight = diceSize;
-        const startX = boardMargin + (boardWidth - diceAreaWidth) / 2;
-        const startY = boardTop + (boardHeight - diceAreaHeight) / 2;
-        // Draw background for the dice area
-        ctx.fillStyle = "#fff";
-        ctx.fillRect(startX - 5, startY - 5, diceAreaWidth + 10, diceAreaHeight + 10);
-        ctx.strokeStyle = "#000";
-        ctx.strokeRect(startX - 5, startY - 5, diceAreaWidth + 10, diceAreaHeight + 10);
-        for (let i = 0; i < diceToShow.length; i++) {
-          drawDie(startX + i * (diceSize + spacing), startY, diceSize, diceToShow[i]);
+    /************ Highlighting Selected Piece & Legal Moves ************/
+    function getTriangleCoordinates(pointIndex) {
+      const boardMargin = 20;
+      const boardWidth = WIDTH - 2 * boardMargin;
+      const boardHeight = 600;
+      const boardTop = 100;
+      const barWidth = 24;
+      const pointWidth = (boardWidth - barWidth) / 12;
+      const pointHeight = boardHeight / 2;
+      let isTop, indexInHalf, x, y, direction;
+      if (pointIndex >= 12 && pointIndex <= 23) {
+        isTop = true;
+        indexInHalf = pointIndex - 12;
+        direction = "down";
+        if (indexInHalf < 6) {
+          x = boardMargin + (5 - indexInHalf) * pointWidth;
+          y = boardTop;
+        } else {
+          x = boardMargin + boardWidth - ((indexInHalf - 6) + 1) * pointWidth;
+          y = boardTop;
         }
-      } catch (err) {
-        logBug("drawDiceFaces", err);
+      } else if (pointIndex >= 0 && pointIndex <= 11) {
+        isTop = false;
+        indexInHalf = pointIndex;
+        direction = "up";
+        if (indexInHalf < 6) {
+          x = boardMargin + indexInHalf * pointWidth;
+          y = boardTop + boardHeight - pointHeight;
+        } else {
+          x = boardMargin + boardWidth - ((indexInHalf - 6) + 1) * pointWidth;
+          y = boardTop + boardHeight - pointHeight;
+        }
+      } else {
+        return null;
+      }
+      return { x, y, width: pointWidth, height: pointHeight, direction };
+    }
+
+    function highlightLegalOptions() {
+      if (selectedPoint !== null) {
+        const selCoords = getTriangleCoordinates(selectedPoint);
+        if (selCoords) {
+          ctx.fillStyle = "rgba(0,255,255,0.5)"; // Cyan overlay for selected piece
+          ctx.fillRect(selCoords.x, selCoords.y, selCoords.width, selCoords.height);
+        }
+        legalMoves.forEach(move => {
+          if (!move.bearOff) {
+            const destCoords = getTriangleCoordinates(move.to);
+            if (destCoords) {
+              ctx.fillStyle = "rgba(255,255,0,0.5)"; // Yellow overlay for legal destination
+              ctx.fillRect(destCoords.x, destCoords.y, destCoords.width, destCoords.height);
+            }
+          }
+        });
       }
     }
 
-    // Draw a single die at (x, y) with given size and value.
-    function drawDie(x, y, size, value) {
-      try {
-        ctx.fillStyle = "#fff";
-        ctx.fillRect(x, y, size, size);
-        ctx.strokeStyle = "#000";
-        ctx.strokeRect(x, y, size, size);
-        ctx.fillStyle = "#000";
-        const dotRadius = size / 10;
-        const centerX = x + size / 2;
-        const centerY = y + size / 2;
-        const positions = {
-          topLeft: { x: x + size * 0.25, y: y + size * 0.25 },
-          topRight: { x: x + size * 0.75, y: y + size * 0.25 },
-          middle: { x: centerX, y: centerY },
-          bottomLeft: { x: x + size * 0.25, y: y + size * 0.75 },
-          bottomRight: { x: x + size * 0.75, y: y + size * 0.75 },
-          middleLeft: { x: x + size * 0.25, y: centerY },
-          middleRight: { x: x + size * 0.75, y: centerY }
-        };
-        function drawDot(pos) {
-          ctx.beginPath();
-          ctx.arc(pos.x, pos.y, dotRadius, 0, Math.PI * 2);
-          ctx.fill();
-        }
-        switch(value) {
-          case 1:
-            drawDot(positions.middle);
-            break;
-          case 2:
-            drawDot(positions.topLeft);
-            drawDot(positions.bottomRight);
-            break;
-          case 3:
-            drawDot(positions.topLeft);
-            drawDot(positions.middle);
-            drawDot(positions.bottomRight);
-            break;
-          case 4:
-            drawDot(positions.topLeft);
-            drawDot(positions.topRight);
-            drawDot(positions.bottomLeft);
-            drawDot(positions.bottomRight);
-            break;
-          case 5:
-            drawDot(positions.topLeft);
-            drawDot(positions.topRight);
-            drawDot(positions.middle);
-            drawDot(positions.bottomLeft);
-            drawDot(positions.bottomRight);
-            break;
-          case 6:
-            drawDot(positions.topLeft);
-            drawDot(positions.topRight);
-            drawDot(positions.middleLeft);
-            drawDot(positions.middleRight);
-            drawDot(positions.bottomLeft);
-            drawDot(positions.bottomRight);
-            break;
-        }
-      } catch (err) {
-        logBug("drawDie", err);
-      }
-    }
-
+    /************ Redraw Function ************/
     function redrawGame() {
       try {
         drawBoard();
+        highlightLegalOptions();
         drawPieces();
+        drawDiceOnCanvas();
       } catch (err) {
         logBug("redrawGame", err);
       }
     }
 
     /************ Move Logic ************/
-    // Check if all checkers of a color are in the home board (and none on the bar)
     function canBearOff(color) {
       let inHome = true;
       for (let i = 0; i < 24; i++) {
@@ -485,7 +544,6 @@
       return inHome;
     }
 
-    // Get legal moves for a checker at board point (if not on the bar)
     function getLegalMoves(pointIndex) {
       let moves = [];
       if (!board[pointIndex] || board[pointIndex].owner !== currentTurn) return moves;
@@ -516,7 +574,6 @@
       return moves;
     }
 
-    // Get legal re-entry moves from the bar.
     function getLegalMovesFromBar() {
       let moves = [];
       if (bar[currentTurn] <= 0) return moves;
@@ -539,7 +596,6 @@
       return moves;
     }
 
-    // Execute a move and update the board state.
     function makeMove(move) {
       try {
         if (move.from === "bar") {
@@ -579,7 +635,6 @@
       }
     }
 
-    // Check if a player has borne off all 15 checkers.
     function checkGameOver() {
       if (borneOff['w'] >= 15) {
         gameState = "game_over";
@@ -596,14 +651,14 @@
     }
 
     /************ Input Handling ************/
-    canvas.addEventListener("mousedown", (e) => {
+    boardCanvas.addEventListener("mousedown", (e) => {
       try {
         if (gameState !== "playing" || aiThinking) return;
-        const rect = canvas.getBoundingClientRect();
+        const rect = boardCanvas.getBoundingClientRect();
         const mx = e.clientX - rect.left;
         const my = e.clientY - rect.top;
         let clickedPoint = getPointFromCoordinates(mx, my);
-        // Enforce re-entry if there are checkers on the bar.
+        // Enforce re-entry if checkers are on the bar.
         if (bar[currentTurn] > 0) {
           let reEntryMoves = getLegalMovesFromBar();
           if (reEntryMoves.length === 0) return;
@@ -637,11 +692,10 @@
         }
         redrawGame();
       } catch (err) {
-        logBug("canvas mousedown", err);
+        logBug("boardCanvas mousedown", err);
       }
     });
 
-    // Given canvas coordinates, determine which board point (0–23) was clicked.
     function getPointFromCoordinates(x, y) {
       try {
         const boardMargin = 20;
@@ -683,7 +737,6 @@
       }
     }
 
-    // End turn by switching current turn and trigger AI if needed.
     function endTurn() {
       currentTurn = (currentTurn === 'w') ? 'b' : 'w';
       if (!checkGameOver()) {
@@ -695,7 +748,6 @@
       }
     }
 
-    // Basic AI: Roll dice, compile legal moves (including re-entry), and choose one at random.
     function aiTurn() {
       aiThinking = true;
       loadingOverlay.style.display = "flex";
@@ -731,14 +783,6 @@
         redrawGame();
       }, (difficulty === "hard" ? 1000 : 1500));
     }
-
-    rollDiceBtn.onclick = function() {
-      if (currentDice.length === 0) {
-        currentDice = rollDice();
-        rollDiceBtn.style.display = "none";
-        redrawGame();
-      }
-    };
 
     /************ Overlay & Menu Management ************/
     function hideAllScreens() {
