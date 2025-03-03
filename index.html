@@ -177,10 +177,18 @@
     let aiThinking = false;
     let borneOff = { w: 0, b: 0 };
 
-    // Board: 24 points (indices 0–11 bottom, 12–23 top)
+    // The board is an array of 24 points (indices 0–11 for bottom, 12–23 for top)
     let board = new Array(24).fill(null);
-    // Bar holds hit checkers:
+    // The bar holds hit checkers:
     let bar = { w: 0, b: 0 };
+
+    // Define delays: human moves will use a short delay; AI moves use 60% of previous delay.
+    const humanDelay = 300; // 300 ms for human move highlighting.
+    function getAIDelay() {
+      if (difficulty === "hard") return 3000 * 0.6; // 1800 ms
+      if (difficulty === "medium") return 2500 * 0.6; // 1500 ms
+      return 2000 * 0.6; // 1200 ms for easy.
+    }
 
     /************ Game Initialization ************/
     function initBoard() {
@@ -432,7 +440,6 @@
         barCtx.fillText("Bar", barCanvas.width/2, 20);
         const pieceRadius = 15;
         const spacing = pieceRadius * 2.2;
-        // Draw white pieces on top
         for (let j = 0; j < bar.w; j++) {
           let centerX = barCanvas.width / 2;
           let centerY = 40 + j * spacing;
@@ -443,7 +450,6 @@
           barCtx.strokeStyle = "#000";
           barCtx.stroke();
         }
-        // Draw black pieces on bottom
         for (let j = 0; j < bar.b; j++) {
           let centerX = barCanvas.width / 2;
           let centerY = barCanvas.height - 40 - j * spacing;
@@ -462,15 +468,12 @@
     /************ Highlighting Selected Piece & Legal Moves ************/
     function highlightLegalOptions() {
       if (selectedPoint !== null) {
-        // For re-entry, selectedPoint is set to "bar"
         if (selectedPoint === "bar") {
-          // Highlight the entire bar area (optional)
-          ctx.fillStyle = "rgba(0,255,255,0.3)";
-          ctx.fillRect(0, 0, 20, 800); // not on board; bar area is drawn separately
+          // Optional: highlight the bar area (here we don't overlay on board)
         } else {
           const selCoords = getTriangleCoordinates(selectedPoint);
           if (selCoords) {
-            ctx.fillStyle = "rgba(0,255,255,0.5)";
+            ctx.fillStyle = "rgba(0,255,255,0.5)"; // Cyan overlay
             ctx.fillRect(selCoords.x, selCoords.y, selCoords.width, selCoords.height);
           }
         }
@@ -478,7 +481,7 @@
           if (!move.bearOff) {
             const destCoords = getTriangleCoordinates(move.to);
             if (destCoords) {
-              ctx.fillStyle = "rgba(255,255,0,0.5)";
+              ctx.fillStyle = "rgba(255,255,0,0.5)"; // Yellow overlay
               ctx.fillRect(destCoords.x, destCoords.y, destCoords.width, destCoords.height);
             }
           }
@@ -618,32 +621,29 @@
       return false;
     }
 
-    /************ Input Handling ************/
+    /************ Input Handling for Human Moves ************/
     boardCanvas.addEventListener("mousedown", (e) => {
-      // Only allow clicks if it's your turn.
+      // Only allow input if it's the human's turn.
       if (currentTurn !== playerColor) return;
       try {
         const rect = boardCanvas.getBoundingClientRect();
         const mx = e.clientX - rect.left;
         const my = e.clientY - rect.top;
         let clickedPoint = getPointFromCoordinates(mx, my);
-        // If you have checkers on the bar, enforce re-entry.
+        // If checkers are on the bar, force re-entry.
         if (bar[currentTurn] > 0) {
           let reEntryMoves = getLegalMovesFromBar();
           if (reEntryMoves.length === 0) return;
-          // Force selectedPoint to be "bar"
           selectedPoint = "bar";
           legalMoves = reEntryMoves;
-          // Only accept clicks that match one of the re-entry moves.
           const move = reEntryMoves.find(m => m.to === clickedPoint);
           if (move) {
-            // Highlight then make move after delay.
             redrawGame();
             setTimeout(() => {
               makeMove(move);
               redrawGame();
               if (currentDice.length === 0) endTurn();
-            }, 1500);
+            }, humanDelay);
           }
           return;
         }
@@ -666,7 +666,7 @@
               makeMove(move);
               redrawGame();
               if (!checkGameOver() && currentDice.length === 0) endTurn();
-            }, 1500);
+            }, humanDelay);
           } else {
             selectedPoint = null;
             legalMoves = [];
@@ -705,7 +705,6 @@
     function endTurn() {
       currentTurn = (currentTurn === 'w') ? 'b' : 'w';
       if (!checkGameOver()) {
-        // Only let AI move if it's not your turn.
         if (currentTurn !== playerColor) {
           aiTurn();
         } else {
@@ -714,12 +713,11 @@
       }
     }
 
-    // Updated AI turn: Only processes moves when it's not your turn.
+    /************ AI Turn (Opponent Moves) ************/
     function aiTurn() {
-      // Do not run AI if it's the human's turn.
       if (currentTurn === playerColor) return;
       aiThinking = true;
-      let delay = (difficulty === "hard" ? 3000 : (difficulty === "medium" ? 2500 : 2000));
+      let aiDelay = getAIDelay();
       setTimeout(() => {
         currentDice = rollDice();
         drawDiceOnCanvas();
@@ -746,29 +744,29 @@
               makeMove(move);
               redrawGame();
               if (currentDice.length > 0) {
-                setTimeout(aiMakeMove, delay);
+                setTimeout(aiMakeMove, aiDelay);
               } else {
                 aiThinking = false;
                 currentTurn = (currentTurn === 'w') ? 'b' : 'w';
                 if (currentTurn === playerColor) {
                   rollDiceBtn.style.display = "block";
                 } else {
-                  setTimeout(aiTurn, delay);
+                  setTimeout(aiTurn, aiDelay);
                 }
               }
-            }, delay);
+            }, aiDelay);
           } else {
             aiThinking = false;
             currentTurn = (currentTurn === 'w') ? 'b' : 'w';
             if (currentTurn === playerColor) {
               rollDiceBtn.style.display = "block";
             } else {
-              setTimeout(aiTurn, delay);
+              setTimeout(aiTurn, aiDelay);
             }
           }
         }
         aiMakeMove();
-      }, delay);
+      }, aiDelay);
     }
 
     /************ Overlay & Menu Management ************/
@@ -804,7 +802,6 @@
       gameState = "playing";
       initBoard();
       redrawGame();
-      // Only show roll button if it's your turn.
       if (currentTurn === playerColor) {
         rollDiceBtn.style.display = "block";
       } else {
