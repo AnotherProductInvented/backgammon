@@ -167,7 +167,7 @@
     let currentTurn = "w";   // white moves first
     let selectedPoint = null;
     let legalMoves = [];
-    let currentDice = [];    // Array of dice values available this turn (e.g. [3,5] or [4,4,4,4])
+    let currentDice = [];    // Example: [3, 5] or [4, 4, 4, 4]
     let aiThinking = false;
     let borneOff = { w: 0, b: 0 };
 
@@ -259,7 +259,8 @@
           }
           drawTriangle(x, boardTop + boardHeight - pointHeight, pointWidth, pointHeight, "up", (i % 2 === 0) ? "#deb887" : "#d2b48c");
         }
-        drawDiceFaces();
+        // Draw dice in a dedicated area on the board (top-right corner of the board)
+        drawDiceFaces(boardMargin, boardWidth, boardTop);
       } catch (err) {
         logBug("drawBoard", err);
       }
@@ -371,15 +372,21 @@
       }
     }
 
-    // Draw two dice with pip representations.
-    function drawDiceFaces() {
+    // Draw two dice with proper pip representations in the top-right corner of the board.
+    function drawDiceFaces(boardMargin, boardWidth, boardTop) {
       try {
         if (currentDice.length === 0) return;
-        let diceToShow = currentDice.slice(0,2);
-        const diceSize = 50;
+        let diceToShow = currentDice.slice(0, 2);
+        const diceSize = 60;
         const spacing = 10;
-        const startX = WIDTH - (diceSize * 2 + spacing + 20);
-        const startY = 20;
+        // Position the dice in the top-right corner of the board
+        const startX = boardMargin + boardWidth - (diceSize * 2 + spacing + 10);
+        const startY = boardTop + 10;
+        // Draw a white rectangle as background for the dice
+        ctx.fillStyle = "#fff";
+        ctx.fillRect(startX - 5, startY - 5, diceSize * 2 + spacing + 10, diceSize + 10);
+        ctx.strokeStyle = "#000";
+        ctx.strokeRect(startX - 5, startY - 5, diceSize * 2 + spacing + 10, diceSize + 10);
         for (let i = 0; i < diceToShow.length; i++) {
           drawDie(startX + i * (diceSize + spacing), startY, diceSize, diceToShow[i]);
         }
@@ -514,9 +521,9 @@
       for (let die of currentDice) {
         let dest;
         if (currentTurn === 'w') {
-          dest = 24 - die;  // For white, if die=1 → index 23; if die=6 → index 18.
+          dest = 24 - die;
         } else {
-          dest = die - 1;   // For black, if die=1 → index 0; if die=6 → index 5.
+          dest = die - 1;
         }
         if (dest < 0 || dest > 23) continue;
         if (!board[dest]) {
@@ -594,7 +601,7 @@
         const mx = e.clientX - rect.left;
         const my = e.clientY - rect.top;
         let clickedPoint = getPointFromCoordinates(mx, my);
-        // If there are checkers on the bar, enforce re-entry.
+        // Enforce re-entry if there are checkers on the bar.
         if (bar[currentTurn] > 0) {
           let reEntryMoves = getLegalMovesFromBar();
           if (reEntryMoves.length === 0) return;
