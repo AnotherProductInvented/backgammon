@@ -259,8 +259,8 @@
           }
           drawTriangle(x, boardTop + boardHeight - pointHeight, pointWidth, pointHeight, "up", (i % 2 === 0) ? "#deb887" : "#d2b48c");
         }
-        // Draw dice in a dedicated area on the board (top-right corner of the board)
-        drawDiceFaces(boardMargin, boardWidth, boardTop);
+        // Draw the dice in the center of the board area (so they don't interfere with checkers)
+        drawDiceFaces(boardMargin, boardWidth, boardTop, boardHeight);
       } catch (err) {
         logBug("drawBoard", err);
       }
@@ -372,21 +372,23 @@
       }
     }
 
-    // Draw two dice with proper pip representations in the top-right corner of the board.
-    function drawDiceFaces(boardMargin, boardWidth, boardTop) {
+    // Draw two dice with proper pip representations in a dedicated area in the center of the board.
+    function drawDiceFaces(boardMargin, boardWidth, boardTop, boardHeight) {
       try {
         if (currentDice.length === 0) return;
         let diceToShow = currentDice.slice(0, 2);
         const diceSize = 60;
         const spacing = 10;
-        // Position the dice in the top-right corner of the board
-        const startX = boardMargin + boardWidth - (diceSize * 2 + spacing + 10);
-        const startY = boardTop + 10;
-        // Draw a white rectangle as background for the dice
+        // Calculate a centered area for the dice
+        const diceAreaWidth = diceSize * 2 + spacing;
+        const diceAreaHeight = diceSize;
+        const startX = boardMargin + (boardWidth - diceAreaWidth) / 2;
+        const startY = boardTop + (boardHeight - diceAreaHeight) / 2;
+        // Draw background for the dice area
         ctx.fillStyle = "#fff";
-        ctx.fillRect(startX - 5, startY - 5, diceSize * 2 + spacing + 10, diceSize + 10);
+        ctx.fillRect(startX - 5, startY - 5, diceAreaWidth + 10, diceAreaHeight + 10);
         ctx.strokeStyle = "#000";
-        ctx.strokeRect(startX - 5, startY - 5, diceSize * 2 + spacing + 10, diceSize + 10);
+        ctx.strokeRect(startX - 5, startY - 5, diceAreaWidth + 10, diceAreaHeight + 10);
         for (let i = 0; i < diceToShow.length; i++) {
           drawDie(startX + i * (diceSize + spacing), startY, diceSize, diceToShow[i]);
         }
