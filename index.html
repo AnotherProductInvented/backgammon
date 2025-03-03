@@ -177,17 +177,35 @@
     let aiThinking = false;
     let borneOff = { w: 0, b: 0 };
 
-    // The board is an array of 24 points (indices 0–11 for bottom, 12–23 for top)
+    // The board is an array of 24 points (indices 0–11 bottom, 12–23 top)
     let board = new Array(24).fill(null);
     // The bar holds hit checkers:
     let bar = { w: 0, b: 0 };
 
-    // Define delays: human moves will use a short delay; AI moves use 60% of previous delay.
-    const humanDelay = 300; // 300 ms for human move highlighting.
+    // Define delays: human moves use a short delay; AI moves use 60% of previous delay.
+    const humanDelay = 300; // milliseconds
     function getAIDelay() {
       if (difficulty === "hard") return 3000 * 0.6; // 1800 ms
       if (difficulty === "medium") return 2500 * 0.6; // 1500 ms
       return 2000 * 0.6; // 1200 ms for easy.
+    }
+
+    /************ Helper: Check if Any Legal Move Exists for Current Player ************/
+    function hasLegalMoves() {
+      let moves = [];
+      if (bar[currentTurn] > 0) {
+        moves = getLegalMovesFromBar();
+      } else {
+        for (let i = 0; i < 24; i++) {
+          if (board[i] && board[i].owner === currentTurn) {
+            let pieceMoves = getLegalMoves(i);
+            if (pieceMoves.length > 0) {
+              moves = moves.concat(pieceMoves);
+            }
+          }
+        }
+      }
+      return moves.length > 0;
     }
 
     /************ Game Initialization ************/
@@ -469,11 +487,11 @@
     function highlightLegalOptions() {
       if (selectedPoint !== null) {
         if (selectedPoint === "bar") {
-          // Optional: highlight the bar area (here we don't overlay on board)
+          // (Optional: highlight the bar area; here we rely on the bar canvas)
         } else {
           const selCoords = getTriangleCoordinates(selectedPoint);
           if (selCoords) {
-            ctx.fillStyle = "rgba(0,255,255,0.5)"; // Cyan overlay
+            ctx.fillStyle = "rgba(0,255,255,0.5)";
             ctx.fillRect(selCoords.x, selCoords.y, selCoords.width, selCoords.height);
           }
         }
@@ -481,7 +499,7 @@
           if (!move.bearOff) {
             const destCoords = getTriangleCoordinates(move.to);
             if (destCoords) {
-              ctx.fillStyle = "rgba(255,255,0,0.5)"; // Yellow overlay
+              ctx.fillStyle = "rgba(255,255,0,0.5)";
               ctx.fillRect(destCoords.x, destCoords.y, destCoords.width, destCoords.height);
             }
           }
@@ -630,7 +648,7 @@
         const mx = e.clientX - rect.left;
         const my = e.clientY - rect.top;
         let clickedPoint = getPointFromCoordinates(mx, my);
-        // If checkers are on the bar, force re-entry.
+        // If checkers are on the bar, enforce re-entry.
         if (bar[currentTurn] > 0) {
           let reEntryMoves = getLegalMovesFromBar();
           if (reEntryMoves.length === 0) return;
@@ -642,7 +660,7 @@
             setTimeout(() => {
               makeMove(move);
               redrawGame();
-              if (currentDice.length === 0) endTurn();
+              if (currentDice.length === 0 && !hasLegalMoves()) endTurn();
             }, humanDelay);
           }
           return;
@@ -665,7 +683,7 @@
             setTimeout(() => {
               makeMove(move);
               redrawGame();
-              if (!checkGameOver() && currentDice.length === 0) endTurn();
+              if (!checkGameOver() && currentDice.length === 0 && !hasLegalMoves()) endTurn();
             }, humanDelay);
           } else {
             selectedPoint = null;
