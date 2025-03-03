@@ -116,16 +116,16 @@
 
   <!-- Main Container with three columns -->
   <div id="mainContainer">
-    <!-- Bar Container -->
+    <!-- Bar Container (Left) -->
     <div id="barContainer">
       <h3>Bar</h3>
       <canvas id="barCanvas" width="150" height="200"></canvas>
     </div>
-    <!-- Board Container -->
+    <!-- Board Container (Center) -->
     <div id="boardContainer">
       <canvas id="boardCanvas" width="720" height="800"></canvas>
     </div>
-    <!-- Dice Container -->
+    <!-- Dice Container (Right) -->
     <div id="diceContainer">
       <button id="rollDiceBtn" style="display:none;">Roll Dice</button>
       <canvas id="diceCanvas" width="150" height="70"></canvas>
@@ -177,9 +177,9 @@
     let aiThinking = false;
     let borneOff = { w: 0, b: 0 };
 
-    // The board is an array of 24 points (indices 0–11 for bottom, 12–23 for top)
+    // Board: 24 points (indices 0–11 bottom, 12–23 top)
     let board = new Array(24).fill(null);
-    // The bar holds hit checkers:
+    // Bar holds hit checkers:
     let bar = { w: 0, b: 0 };
 
     /************ Game Initialization ************/
@@ -211,9 +211,8 @@
       try {
         const die1 = Math.floor(Math.random() * 6) + 1;
         const die2 = Math.floor(Math.random() * 6) + 1;
-        // If doubles, return four identical moves.
         if (die1 === die2) {
-          return [die1, die1, die1, die1];
+          return [die1, die1, die1, die1]; // Four moves for doubles.
         }
         return [die1, die2];
       } catch (err) {
@@ -294,12 +293,11 @@
     }
 
     rollDiceBtn.onclick = function() {
-      if (currentDice.length === 0) {
+      if (currentDice.length === 0 && currentTurn === playerColor) {
         currentDice = rollDice();
         drawDiceOnCanvas();
         rollDiceBtn.style.display = "none";
         redrawGame();
-        // If human is playing, they roll and then choose a move.
       }
     };
 
@@ -313,10 +311,8 @@
         const boardTop = 100;
         ctx.fillStyle = "#f5f5f5";
         ctx.fillRect(0, 0, WIDTH, HEIGHT);
-        // Board background (green)
         ctx.fillStyle = "#006400";
         ctx.fillRect(boardMargin, boardTop, boardWidth, boardHeight);
-        // Dimensions for each point (24 continuous points)
         const pointWidth = boardWidth / 12;
         const pointHeight = boardHeight / 2;
         // Draw top half (points 24 to 13, indices 23 to 12)
@@ -358,7 +354,6 @@
       }
     }
 
-    // Given a board point index (0–23), return its triangle coordinates.
     function getTriangleCoordinates(pointIndex) {
       const boardMargin = 20;
       const boardWidth = WIDTH - 2 * boardMargin;
@@ -437,7 +432,7 @@
         barCtx.fillText("Bar", barCanvas.width/2, 20);
         const pieceRadius = 15;
         const spacing = pieceRadius * 2.2;
-        // White pieces on top
+        // Draw white pieces on top
         for (let j = 0; j < bar.w; j++) {
           let centerX = barCanvas.width / 2;
           let centerY = 40 + j * spacing;
@@ -448,7 +443,7 @@
           barCtx.strokeStyle = "#000";
           barCtx.stroke();
         }
-        // Black pieces on bottom
+        // Draw black pieces on bottom
         for (let j = 0; j < bar.b; j++) {
           let centerX = barCanvas.width / 2;
           let centerY = barCanvas.height - 40 - j * spacing;
@@ -467,16 +462,23 @@
     /************ Highlighting Selected Piece & Legal Moves ************/
     function highlightLegalOptions() {
       if (selectedPoint !== null) {
-        const selCoords = getTriangleCoordinates(selectedPoint);
-        if (selCoords) {
-          ctx.fillStyle = "rgba(0,255,255,0.5)"; // Cyan for selected
-          ctx.fillRect(selCoords.x, selCoords.y, selCoords.width, selCoords.height);
+        // For re-entry, selectedPoint is set to "bar"
+        if (selectedPoint === "bar") {
+          // Highlight the entire bar area (optional)
+          ctx.fillStyle = "rgba(0,255,255,0.3)";
+          ctx.fillRect(0, 0, 20, 800); // not on board; bar area is drawn separately
+        } else {
+          const selCoords = getTriangleCoordinates(selectedPoint);
+          if (selCoords) {
+            ctx.fillStyle = "rgba(0,255,255,0.5)";
+            ctx.fillRect(selCoords.x, selCoords.y, selCoords.width, selCoords.height);
+          }
         }
         legalMoves.forEach(move => {
           if (!move.bearOff) {
             const destCoords = getTriangleCoordinates(move.to);
             if (destCoords) {
-              ctx.fillStyle = "rgba(255,255,0,0.5)"; // Yellow for legal destination
+              ctx.fillStyle = "rgba(255,255,0,0.5)";
               ctx.fillRect(destCoords.x, destCoords.y, destCoords.width, destCoords.height);
             }
           }
@@ -590,7 +592,6 @@
             }
           }
         }
-        // Remove the used die
         const index = currentDice.indexOf(move.die);
         if (index !== -1) {
           currentDice.splice(index, 1);
@@ -619,21 +620,24 @@
 
     /************ Input Handling ************/
     boardCanvas.addEventListener("mousedown", (e) => {
+      // Only allow clicks if it's your turn.
+      if (currentTurn !== playerColor) return;
       try {
-        if (gameState !== "playing" || aiThinking) return;
         const rect = boardCanvas.getBoundingClientRect();
         const mx = e.clientX - rect.left;
         const my = e.clientY - rect.top;
         let clickedPoint = getPointFromCoordinates(mx, my);
-        // If checkers are on the bar, enforce re-entry.
+        // If you have checkers on the bar, enforce re-entry.
         if (bar[currentTurn] > 0) {
           let reEntryMoves = getLegalMovesFromBar();
           if (reEntryMoves.length === 0) return;
+          // Force selectedPoint to be "bar"
+          selectedPoint = "bar";
+          legalMoves = reEntryMoves;
+          // Only accept clicks that match one of the re-entry moves.
           const move = reEntryMoves.find(m => m.to === clickedPoint);
           if (move) {
-            // Simulate highlighting for re-entry move
-            selectedPoint = "bar";
-            legalMoves = [move];
+            // Highlight then make move after delay.
             redrawGame();
             setTimeout(() => {
               makeMove(move);
@@ -655,7 +659,6 @@
         } else {
           const move = legalMoves.find(m => m.to === clickedPoint);
           if (move) {
-            // Highlight the move briefly before making it
             selectedPoint = move.from;
             legalMoves = [move];
             redrawGame();
@@ -702,6 +705,7 @@
     function endTurn() {
       currentTurn = (currentTurn === 'w') ? 'b' : 'w';
       if (!checkGameOver()) {
+        // Only let AI move if it's not your turn.
         if (currentTurn !== playerColor) {
           aiTurn();
         } else {
@@ -710,15 +714,15 @@
       }
     }
 
-    // Updated AI turn: Simulate a human-like sequence of dice roll and move highlights.
+    // Updated AI turn: Only processes moves when it's not your turn.
     function aiTurn() {
+      // Do not run AI if it's the human's turn.
+      if (currentTurn === playerColor) return;
       aiThinking = true;
-      // Remove processing overlay; instead, the AI will roll dice visibly.
       let delay = (difficulty === "hard" ? 3000 : (difficulty === "medium" ? 2500 : 2000));
       setTimeout(() => {
         currentDice = rollDice();
         drawDiceOnCanvas();
-        // Recursive function to process one move at a time.
         function aiMakeMove() {
           let possibleMoves = [];
           if (bar[currentTurn] > 0) {
@@ -734,21 +738,16 @@
             }
           }
           if (possibleMoves.length > 0) {
-            // Pick a move at random.
             let move = possibleMoves[Math.floor(Math.random() * possibleMoves.length)];
-            // Highlight the move as if selecting a piece.
             selectedPoint = move.from;
             legalMoves = [move];
             redrawGame();
-            // Wait a bit before actually making the move.
             setTimeout(() => {
               makeMove(move);
               redrawGame();
-              // Continue processing if there are remaining dice.
               if (currentDice.length > 0) {
                 setTimeout(aiMakeMove, delay);
               } else {
-                // End AI turn.
                 aiThinking = false;
                 currentTurn = (currentTurn === 'w') ? 'b' : 'w';
                 if (currentTurn === playerColor) {
@@ -759,7 +758,6 @@
               }
             }, delay);
           } else {
-            // No legal moves available; end turn.
             aiThinking = false;
             currentTurn = (currentTurn === 'w') ? 'b' : 'w';
             if (currentTurn === playerColor) {
@@ -806,6 +804,7 @@
       gameState = "playing";
       initBoard();
       redrawGame();
+      // Only show roll button if it's your turn.
       if (currentTurn === playerColor) {
         rollDiceBtn.style.display = "block";
       } else {
