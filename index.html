@@ -14,9 +14,10 @@
       flex-direction: column; text-align: center;
       z-index: 5;
     }
-    /* New overlay for no legal move */
     #noLegalMoveOverlay { font-size: 48px; color: red; }
+    #customRollOverlay { font-size: 20px; }
     button { font-size:18px; margin:10px; padding:10px 20px; cursor:pointer; }
+    input { font-size:18px; margin:5px; padding:5px; width: 50px; text-align:center; }
     #mainContainer { display: flex; flex-direction: row; align-items: flex-start; margin-top: 60px; }
     #barContainer { width: 150px; text-align: center; }
     #boardContainer { position: relative; width:720px; height:800px; background:#f5f5f5; margin:0 20px; }
@@ -54,18 +55,25 @@
       Re-entering from the Bar – If you have a checker on the bar, you must enter it before making other moves.<br>
       Bearing Off – Once all your checkers are in your home board, you can start bearing them off by rolling dice matching occupied points.<br>
       Home board – the last 6 points before you bear off.<br>
-      Winning – The first player to bear off all their checkers wins.
+      Winning – The first player to bear off all their checkers wins.<br>
+      Press [M] to return to the main menu.
     </p>
-    <p>Press [M] to return to the main menu.</p>
   </div>
   <div id="gameOverScreen" class="overlayScreen">
     <h2 id="gameOverText"></h2>
     <button id="gameOverNewGameBtn">New Game</button>
     <p>Press [M] to return.</p>
   </div>
-  <!-- No legal move overlay -->
+  <!-- No Legal Move overlay -->
   <div id="noLegalMoveOverlay" class="overlayScreen">
     <h2>No Legal Move</h2>
+  </div>
+  <!-- Custom Roll overlay for testing -->
+  <div id="customRollOverlay" class="overlayScreen">
+    <p>Enter Custom Dice Roll:</p>
+    <input type="number" id="customDie1" min="1" max="6" value="1">
+    <input type="number" id="customDie2" min="1" max="6" value="1">
+    <button id="customRollBtn">Roll Custom</button>
   </div>
 
   <!-- Main Container -->
@@ -79,12 +87,16 @@
     </div>
     <div id="diceContainer">
       <button id="rollDiceBtn" style="display:none;">Roll Dice</button>
+      <button id="customRollToggleBtn" style="display:none;">Custom Roll</button>
       <canvas id="diceCanvas" width="150" height="70"></canvas>
     </div>
   </div>
   <img id="logo" src="logo.png" alt="Logo">
 
   <script>
+    // Set testingMode true to show custom roll button (remove for production)
+    const testingMode = true;
+
     /* --- Bug Logging --- */
     let bugLogs = [];
     function logBug(loc, details) {
@@ -110,19 +122,22 @@
           gameOverScreen = document.getElementById("gameOverScreen"),
           gameOverText = document.getElementById("gameOverText"),
           rollDiceBtn = document.getElementById("rollDiceBtn"),
-          noLegalMoveOverlay = document.getElementById("noLegalMoveOverlay");
+          noLegalMoveOverlay = document.getElementById("noLegalMoveOverlay"),
+          customRollOverlay = document.getElementById("customRollOverlay"),
+          customRollBtn = document.getElementById("customRollBtn"),
+          customRollToggleBtn = document.getElementById("customRollToggleBtn");
 
     // Board dimensions & margins.
     const WIDTH = 720, HEIGHT = 800,
           boardMargin = 20, boardTop = 100, boardHeight = 600,
           boardWidth = WIDTH - 2 * boardMargin, pointWidth = boardWidth / 12;
 
-    /* In our invisible numbering:
+    /* Invisible numbering:
          Bottom row (right-to‑left): points 1–12
          Top row (left-to‑right): points 13–24
-         For movement:
-         • White moves from 1 → 24 (by adding die)
-         • Black moves from 24 → 1 (by subtracting die)
+       Movement:
+         • White moves from 1 → 24 (by adding the die)
+         • Black moves from 24 → 1 (by subtracting the die)
     */
     let gameState = "menu", playerColor = null, difficulty = null,
         currentTurn = "w", selectedPoint = null, legalMoves = [],
@@ -203,7 +218,7 @@
       if(!currentDice.length && currentTurn===playerColor){
         currentDice = rollDice();
         drawDiceOnCanvas();
-        // If no legal moves exist with any of the dice, show overlay.
+        // Check for legal moves immediately:
         if(!hasLegalMoves()){
           showNoLegalMove();
           return;
@@ -212,6 +227,31 @@
         redrawGame();
       }
     };
+
+    /* --- Custom Roll (for testing) --- */
+    if(testingMode){
+      customRollToggleBtn.style.display = "block";
+      customRollToggleBtn.onclick = () => {
+        customRollOverlay.style.display = "flex";
+      };
+      customRollBtn.onclick = () => {
+        const die1 = parseInt(document.getElementById("customDie1").value),
+              die2 = parseInt(document.getElementById("customDie2").value);
+        if(die1 < 1 || die1 > 6 || die2 < 1 || die2 > 6){
+          alert("Please enter values between 1 and 6.");
+          return;
+        }
+        currentDice = die1===die2 ? [die1,die1,die1,die1] : [die1,die2];
+        drawDiceOnCanvas();
+        customRollOverlay.style.display = "none";
+        if(!hasLegalMoves()){
+          showNoLegalMove();
+          return;
+        }
+        rollDiceBtn.style.display = "none";
+        redrawGame();
+      };
+    }
 
     /* --- Drawing the Board --- */
     function drawBoard(){
@@ -301,8 +341,8 @@
           let spacing = Math.min(tri.width, tri.height)/2.2;
           for(let j=0; j<board[i].count; j++){
             let centerY;
-            // For Black (top row, indices 12-23) stack from top.
-            // For White (bottom row, indices 0-11) stack from bottom.
+            // Black pieces (top row, indices 12-23) stack from top.
+            // White pieces (bottom row, indices 0-11) stack from bottom.
             if(i>=12) { centerY = tri.y + (j+0.5)*spacing; }
             else { centerY = tri.y + tri.height - (j+0.5)*spacing; }
             ctx.beginPath();
@@ -349,8 +389,8 @@
     }
 
     /* --- Move Logic --- */
-    // WHITE moves from 1 → 24 (by adding the die)
-    // BLACK moves from 24 → 1 (by subtracting the die)
+    // WHITE moves from 1 → 24 (by adding the die).
+    // BLACK moves from 24 → 1 (by subtracting the die).
     function canBearOff(color){
       let inHome = true;
       for(let i=0; i<24; i++){
@@ -484,10 +524,9 @@
             setTimeout(()=>{
               makeMove(move);
               redrawGame();
-              // After a move, if no legal moves exist, show overlay then end turn.
               if(!hasLegalMoves()){
-                if(currentDice.length > 0) { showNoLegalMove(); return; }
-                else endTurn();
+                showNoLegalMove();
+                return;
               }
             }, humanDelay);
           }
@@ -510,8 +549,8 @@
               makeMove(move);
               redrawGame();
               if(!hasLegalMoves()){
-                if(currentDice.length > 0) { showNoLegalMove(); return; }
-                else endTurn();
+                showNoLegalMove();
+                return;
               }
             }, humanDelay);
           } else { selectedPoint = null; legalMoves = []; }
@@ -532,7 +571,7 @@
           let pos = Math.floor((x-boardMargin)/pointWidth);
           pt = 12 - pos;
         }
-        return pt-1; // convert to 0-index.
+        return pt-1;
       } catch(err){ logBug("getPointFromCoordinates",err); return null; }
     }
     function hasLegalMoves(){
@@ -617,6 +656,8 @@
       colorScreen.style.display = "none";
       difficultyScreen.style.display = "none";
       gameOverScreen.style.display = "none";
+      customRollOverlay.style.display = "none";
+      noLegalMoveOverlay.style.display = "none";
     }
     function showMenu(){ hideAllScreens(); gameState="menu"; menuScreen.style.display="flex"; }
     function showInstructions(){ hideAllScreens(); gameState="instructions"; instructionsScreen.style.display="flex"; }
