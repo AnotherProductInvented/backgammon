@@ -48,20 +48,22 @@
   <div id="instructionsScreen" class="overlayScreen">
     <h2>How to Play</h2>
     <p>
-      Using invisible numbering:<br>
-      • Bottom row (right-to‑left): points 1–12; Top row (left-to‑right): points 13–24.<br>
-      • <strong>White</strong> moves from 1 to 24 (adding the die) and bears off only when all its checkers are in points 19–24.<br>
-      • <strong>Black</strong> moves from 24 to 1 (subtracting the die) and bears off only when all its checkers are in points 1–6.<br>
-      A hit checker goes to the bar and re‑enters into the opponent’s home board.
+      Rolling the Dice – Each player rolls two dice and moves their checkers based on the numbers rolled.<br>
+      Moving Checkers – Checkers move toward your home board. You can split or combine dice values for movement.<br>
+      Landing on a Point – You can land on an open point or one occupied by your checkers. Landing on a single opponent checker (a blot) sends it to the bar.<br>
+      Re-entering from the Bar – If you have a checker on the bar, you must enter it before making other moves.<br>
+      Bearing Off – Once all your checkers are in your home board, you can start bearing them off by rolling dice matching occupied points.<br>
+      Home board – the last 6 points before you bear off.<br>
+      Winning – The first player to bear off all their checkers wins.
     </p>
-    <p>Press [M] to return.</p>
+    <p>Press [M] to return to the main menu.</p>
   </div>
   <div id="gameOverScreen" class="overlayScreen">
     <h2 id="gameOverText"></h2>
     <button id="gameOverNewGameBtn">New Game</button>
     <p>Press [M] to return.</p>
   </div>
-  <!-- New overlay for no legal move -->
+  <!-- No legal move overlay -->
   <div id="noLegalMoveOverlay" class="overlayScreen">
     <h2>No Legal Move</h2>
   </div>
@@ -83,16 +85,17 @@
   <img id="logo" src="logo.png" alt="Logo">
 
   <script>
-    /********** Bug Logging **********/
+    /* --- Bug Logging --- */
     let bugLogs = [];
     function logBug(loc, details) {
       const entry = { time: new Date().toISOString(), loc, details };
       bugLogs.push(entry);
       console.error("Bug:", entry);
     }
-    window.onerror = (msg, src, line, col, err) => logBug("Global", {msg, src, line, col, err});
+    window.onerror = (msg, src, line, col, err) =>
+      logBug("Global", {msg, src, line, col, err});
 
-    /********** Globals & Constants **********/
+    /* --- Globals & Constants --- */
     const boardCanvas = document.getElementById("boardCanvas"),
           ctx = boardCanvas.getContext("2d"),
           diceCanvas = document.getElementById("diceCanvas"),
@@ -114,9 +117,14 @@
           boardMargin = 20, boardTop = 100, boardHeight = 600,
           boardWidth = WIDTH - 2 * boardMargin, pointWidth = boardWidth / 12;
 
+    /* In our invisible numbering:
+         Bottom row (right-to‑left): points 1–12
+         Top row (left-to‑right): points 13–24
+         For movement:
+         • White moves from 1 → 24 (by adding die)
+         • Black moves from 24 → 1 (by subtracting die)
+    */
     let gameState = "menu", playerColor = null, difficulty = null,
-        // White moves from 1 to 24 (adding die)
-        // Black moves from 24 to 1 (subtracting die)
         currentTurn = "w", selectedPoint = null, legalMoves = [],
         currentDice = [], aiThinking = false,
         borneOff = { w: 0, b: 0 },
@@ -128,29 +136,31 @@
       return difficulty==="hard" ? 1800 : difficulty==="medium" ? 1500 : 1200;
     }
 
-    /********** Game Initialization **********/
+    /* --- Game Initialization --- */
     function initBoard() {
       try {
         board.fill(null);
         borneOff = { w: 0, b: 0 };
         bar = { w: 0, b: 0 };
         // Starting positions (swapped):
-        // White (moves from 1 upward): use Black’s traditional positions.
+        // White (moves from 1 → 24): gets traditional Black positions.
         board[0]  = { owner: 'w', count: 2 };   // point 1
         board[11] = { owner: 'w', count: 5 };   // point 12
         board[16] = { owner: 'w', count: 3 };   // point 17
         board[18] = { owner: 'w', count: 5 };   // point 19
-        // Black (moves from 24 downward): use White’s traditional positions.
+        // Black (moves from 24 → 1): gets traditional White positions.
         board[23] = { owner: 'b', count: 2 };   // point 24
         board[12] = { owner: 'b', count: 5 };   // point 13
         board[7]  = { owner: 'b', count: 3 };   // point 8
         board[5]  = { owner: 'b', count: 5 };   // point 6
-        currentTurn = "w"; currentDice = [];
-        selectedPoint = null; legalMoves = [];
+        currentTurn = "w";
+        currentDice = [];
+        selectedPoint = null;
+        legalMoves = [];
       } catch(err) { logBug("initBoard", err); }
     }
 
-    /********** Dice Functions **********/
+    /* --- Dice Functions --- */
     function rollDice() {
       try {
         const d1 = Math.floor(Math.random()*6)+1,
@@ -169,7 +179,7 @@
       ctx.fillStyle="#fff"; ctx.fillRect(x,y,size,size);
       ctx.strokeStyle="#000"; ctx.strokeRect(x,y,size,size);
       ctx.fillStyle="#000";
-      const dotRadius = size/10, cx=x+size/2, cy=y+size/2;
+      const dotRadius = size/10, cx = x+size/2, cy = y+size/2;
       const positions = {
         tl: { x: x+size*0.25, y: y+size*0.25 },
         tr: { x: x+size*0.75, y: y+size*0.25 },
@@ -193,7 +203,7 @@
       if(!currentDice.length && currentTurn===playerColor){
         currentDice = rollDice();
         drawDiceOnCanvas();
-        // If no legal moves exist, show "No Legal Move" overlay.
+        // If no legal moves exist with any of the dice, show overlay.
         if(!hasLegalMoves()){
           showNoLegalMove();
           return;
@@ -203,7 +213,7 @@
       }
     };
 
-    /********** Drawing the Board **********/
+    /* --- Drawing the Board --- */
     function drawBoard(){
       try {
         ctx.clearRect(0,0,WIDTH,HEIGHT);
@@ -220,7 +230,7 @@
         }
         // Bottom row: points 1–12 (drawn right-to-left) → White's territory.
         for(let p=1; p<=12; p++){
-          let pos = 12 - p;  // so point 1 is rightmost.
+          let pos = 12 - p;
           let x = boardMargin + pos*pointWidth;
           let y = boardTop + boardHeight/2;
           let tri = { x, y, width: pointWidth, height: boardHeight/2, direction:"up" };
@@ -250,13 +260,11 @@
     function getTriangleCoordinates(idx){
       let x, y, width = pointWidth, height;
       if(idx>=12 && idx<=23){
-        // Top row: points 13–24.
         let p = idx + 1;
         x = boardMargin + (p-13)*pointWidth;
         y = boardTop; height = boardHeight/2;
         return { x, y, width, height, direction:"down" };
       } else if(idx>=0 && idx<=11){
-        // Bottom row: points 1–12 (drawn reversed).
         let p = idx + 1;
         let pos = 12 - p;
         x = boardMargin + pos*pointWidth;
@@ -265,10 +273,10 @@
       } else return null;
     }
 
-    /********** Borne-off Drawing **********/
+    /* --- Borne-off Drawing --- */
     function drawBorneOff(){
       const pieceRadius = 20;
-      // Black borne-off: drawn in top right (their destination).
+      // Black borne-off: drawn in top right.
       for(let i=0; i<borneOff.b; i++){
         let x = WIDTH - 50, y = boardTop + 20 + i*(pieceRadius*2.2);
         ctx.beginPath(); ctx.arc(x, y, pieceRadius, 0, 2*Math.PI);
@@ -282,7 +290,7 @@
       }
     }
 
-    /********** Pieces Drawing **********/
+    /* --- Pieces Drawing --- */
     function drawPieces(){
       try {
         ctx.font="20px sans-serif"; ctx.textAlign="center"; ctx.textBaseline="middle";
@@ -310,7 +318,7 @@
       } catch(err){ logBug("drawPieces", err); }
     }
 
-    /********** Highlight Legal Moves **********/
+    /* --- Highlight Legal Moves --- */
     function highlightLegalOptions(){
       if(selectedPoint!==null){
         let selCoords = getTriangleCoordinates(selectedPoint);
@@ -320,7 +328,7 @@
         }
         legalMoves.forEach(move => {
           if(move.bearOff){
-            let x, y, rectW = 60, rectH = 60;
+            let x,y, rectW = 60, rectH = 60;
             // For White: bear-off area is bottom left; for Black: top right.
             if(currentTurn==='w'){
               x = boardMargin + 20; y = boardTop + boardHeight - rectH - 20;
@@ -340,9 +348,9 @@
       }
     }
 
-    /********** Move Logic **********/
-    // WHITE moves from point 1 → 24 (by adding the die)
-    // BLACK moves from point 24 → 1 (by subtracting the die)
+    /* --- Move Logic --- */
+    // WHITE moves from 1 → 24 (by adding the die)
+    // BLACK moves from 24 → 1 (by subtracting the die)
     function canBearOff(color){
       let inHome = true;
       for(let i=0; i<24; i++){
@@ -459,7 +467,7 @@
       return false;
     }
 
-    /********** Input Handling **********/
+    /* --- Input Handling --- */
     boardCanvas.addEventListener("mousedown", (e)=>{
       if(currentTurn!==playerColor) return;
       try {
@@ -476,7 +484,11 @@
             setTimeout(()=>{
               makeMove(move);
               redrawGame();
-              if(!currentDice.length && !hasLegalMoves()) endTurn();
+              // After a move, if no legal moves exist, show overlay then end turn.
+              if(!hasLegalMoves()){
+                if(currentDice.length > 0) { showNoLegalMove(); return; }
+                else endTurn();
+              }
             }, humanDelay);
           }
           return;
@@ -497,7 +509,10 @@
             setTimeout(()=>{
               makeMove(move);
               redrawGame();
-              if(!checkGameOver() && !currentDice.length && !hasLegalMoves()) endTurn();
+              if(!hasLegalMoves()){
+                if(currentDice.length > 0) { showNoLegalMove(); return; }
+                else endTurn();
+              }
             }, humanDelay);
           } else { selectedPoint = null; legalMoves = []; }
         }
@@ -541,7 +556,7 @@
       }
     }
 
-    /********** Show "No Legal Move" Overlay **********/
+    /* --- Show "No Legal Move" Overlay --- */
     function showNoLegalMove(){
       noLegalMoveOverlay.style.display = "flex";
       setTimeout(()=>{
@@ -550,14 +565,13 @@
       }, 2000);
     }
 
-    /********** AI Turn **********/
+    /* --- AI Turn --- */
     function aiTurn(){
       if(currentTurn===playerColor) return;
       aiThinking = true;
       let delay = getAIDelay();
       setTimeout(()=>{
         currentDice = rollDice(); drawDiceOnCanvas();
-        // If AI has no legal moves, show overlay and end turn.
         if(!hasLegalMoves()){
           showNoLegalMove();
           return;
@@ -596,7 +610,7 @@
       }, delay);
     }
 
-    /********** Overlays & Menus **********/
+    /* --- Overlays & Menus --- */
     function hideAllScreens(){
       menuScreen.style.display = "none";
       instructionsScreen.style.display = "none";
@@ -636,7 +650,7 @@
       }
     });
 
-    /********** Redraw & Main Loop **********/
+    /* --- Redraw & Main Loop --- */
     function redrawGame(){
       try { drawBoard(); highlightLegalOptions(); drawPieces(); drawDiceOnCanvas(); drawBarPieces(); }
       catch(err){ logBug("redrawGame",err); }
@@ -644,7 +658,7 @@
     function mainLoop(){ if(gameState==="playing") redrawGame(); requestAnimationFrame(mainLoop); }
     window.addEventListener("load", ()=> { showMenu(); mainLoop(); });
 
-    /********** Bar Pieces Drawing **********/
+    /* --- Bar Pieces Drawing --- */
     function drawBarPieces(){
       try {
         barCtx.clearRect(0,0,barCanvas.width,barCanvas.height);
