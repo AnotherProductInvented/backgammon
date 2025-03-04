@@ -34,7 +34,7 @@
   </style>
 </head>
 <body>
-  <!-- Main Menus and Overlays -->
+  <!-- Menus & Overlays -->
   <div id="menuScreen" class="overlayScreen" style="display: flex;">
     <h1>Backgammon</h1>
     <button id="newGameBtn">New Game</button>
@@ -228,7 +228,7 @@
       if (!currentDice.length && currentTurn === playerColor) {
         currentDice = rollDice();
         drawDiceOnCanvas();
-        // If there are dice and no legal moves, clear dice and show overlay.
+        // Only roll if there is at least one legal move.
         if (currentDice.length > 0 && !hasLegalMoves()) {
           currentDice = [];
           showNoLegalMove();
@@ -242,7 +242,9 @@
     /* --- Custom Roll (Testing Mode) --- */
     if (testingMode) {
       customRollToggleBtn.style.display = "block";
-      customRollToggleBtn.onclick = () => { customRollOverlay.style.display = "flex"; };
+      customRollToggleBtn.onclick = () => {
+        customRollOverlay.style.display = "flex";
+      };
       customRollBtn.onclick = () => {
         const die1 = parseInt(document.getElementById("customDie1").value),
               die2 = parseInt(document.getElementById("customDie2").value);
@@ -261,6 +263,18 @@
         rollDiceBtn.style.display = "none";
         redrawGame();
       };
+    }
+
+    /* --- Update Custom Roll Visibility --- */
+    function updateCustomRollVisibility() {
+      if (testingMode) {
+        // Show custom roll controls only if it's the human's turn.
+        if (currentTurn === playerColor) {
+          customRollToggleBtn.style.display = "block";
+        } else {
+          customRollToggleBtn.style.display = "none";
+        }
+      }
     }
 
     /* --- Drawing the Board --- */
@@ -618,8 +632,14 @@
     function endTurn() {
       currentTurn = (currentTurn === 'w') ? 'b' : 'w';
       if (!checkGameOver()) {
-        if (currentTurn !== playerColor) aiTurn();
-        else rollDiceBtn.style.display = "block";
+        if (currentTurn === playerColor) {
+          rollDiceBtn.style.display = "block";
+          if (testingMode) customRollToggleBtn.style.display = "block";
+        } else {
+          rollDiceBtn.style.display = "none";
+          if (testingMode) customRollToggleBtn.style.display = "none";
+          aiTurn();
+        }
       }
     }
 
@@ -671,8 +691,12 @@
           } else {
             aiThinking = false;
             currentTurn = (currentTurn === 'w') ? 'b' : 'w';
-            if (currentTurn === playerColor) rollDiceBtn.style.display = "block";
-            else setTimeout(aiTurn, delay);
+            if (currentTurn === playerColor) {
+              rollDiceBtn.style.display = "block";
+              if (testingMode) customRollToggleBtn.style.display = "block";
+            } else {
+              setTimeout(aiTurn, delay);
+            }
           }
         } else {
           currentDice = [];
@@ -700,8 +724,14 @@
       gameState = "playing";
       initBoard();
       redrawGame();
-      if (currentTurn === playerColor) rollDiceBtn.style.display = "block";
-      else { rollDiceBtn.style.display = "none"; aiTurn(); }
+      if (currentTurn === playerColor) {
+        rollDiceBtn.style.display = "block";
+        if (testingMode) customRollToggleBtn.style.display = "block";
+      } else {
+        rollDiceBtn.style.display = "none";
+        if (testingMode) customRollToggleBtn.style.display = "none";
+        aiTurn();
+      }
     }
     function showGameOver() { hideAllScreens(); gameState = "game_over"; gameOverScreen.style.display = "flex"; }
 
@@ -743,7 +773,7 @@
         barCtx.fillStyle = "#000";
         barCtx.fillText("Bar", barCanvas.width / 2, 20);
         const pieceRadius = 15, spacing = pieceRadius * 2.2;
-        // White pieces on top of bar.
+        // White pieces on bar.
         for (let j = 0; j < bar.w; j++) {
           let cx = barCanvas.width / 2, cy = 40 + j * spacing;
           barCtx.beginPath();
@@ -753,7 +783,7 @@
           barCtx.strokeStyle = "#000";
           barCtx.stroke();
         }
-        // Black pieces on bottom of bar.
+        // Black pieces on bar.
         for (let j = 0; j < bar.b; j++) {
           let cx = barCanvas.width / 2, cy = barCanvas.height - 40 - j * spacing;
           barCtx.beginPath();
