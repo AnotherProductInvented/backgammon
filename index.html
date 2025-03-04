@@ -446,6 +446,26 @@
       drawPieces();
     }
     
+    // Added missing function to highlight legal moves
+    function highlightLegalOptions() {
+      if (selectedPoint !== null) {
+        let selCoords = getTriangleCoordinates(selectedPoint);
+        if (selCoords) {
+          ctx.strokeStyle = "red";
+          ctx.lineWidth = 4;
+          ctx.strokeRect(selCoords.x, selCoords.y, selCoords.width, selCoords.height);
+        }
+        legalMoves.forEach(move => {
+          let destCoords = getTriangleCoordinates(move.to);
+          if (destCoords) {
+            ctx.strokeStyle = "yellow";
+            ctx.lineWidth = 4;
+            ctx.strokeRect(destCoords.x, destCoords.y, destCoords.width, destCoords.height);
+          }
+        });
+      }
+    }
+    
     function redraw() {
       redrawBoard();
       highlightLegalOptions();
