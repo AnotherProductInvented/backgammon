@@ -65,6 +65,19 @@
       border: 2px solid #000;
       margin-bottom: 20px;
     }
+    /* Custom Dice Controls */
+    #customDiceControls {
+      margin-top: 10px;
+    }
+    #customDiceControls input {
+      width: 50px;
+      padding: 5px;
+      margin: 0 5px;
+    }
+    #customDiceControls button {
+      padding: 5px 10px;
+      font-size: 14px;
+    }
   </style>
 </head>
 <body>
@@ -129,6 +142,13 @@
       <canvas id="diceCanvas" width="250" height="150"></canvas>
       <button id="rollBtn" style="display: none;">Roll Dice</button>
       <p id="diceResult"></p>
+      <!-- Custom Dice Controls -->
+      <div id="customDiceControls">
+        <input type="number" id="customDie1" min="1" max="6" placeholder="Die 1">
+        <input type="number" id="customDie2" min="1" max="6" placeholder="Die 2">
+        <button id="setCustomDiceBtn">Set Custom Dice</button>
+        <button id="clearCustomDiceBtn">Clear Custom Dice</button>
+      </div>
     </div>
   </div>
 
@@ -197,11 +217,15 @@
     let legalMoves = [];
     let currentDice = [];
 
-    let currentTurn = "w"; // Set via overlay (human chooses)
+    // Turn control – human chooses color.
+    let currentTurn = "w"; // Set via overlay
     let playerColor = "w"; // default
     const diceAnimationDuration = 1000;
     let difficulty = "easy";
     let gameState = "menu";
+
+    // For testing: custom dice option (null means use normal random dice)
+    let customDice = null;
 
     /***********************************
      * Overlay & Menu Management
@@ -519,7 +543,8 @@
     
     rollBtn.addEventListener("click", () => {
       rollBtn.disabled = true;
-      const finalDice = rollDiceSimple();
+      // Use custom dice if set, else roll randomly.
+      const finalDice = (customDice !== null) ? customDice : rollDiceSimple();
       animateDice(finalDice, diceAnimationDuration, () => {
         currentDice = finalDice;
         console.log("Final dice:", finalDice);
@@ -646,7 +671,8 @@
     }
     
     function aiTurn() {
-      if (currentTurn === "w") return; // Human is White
+      // If it's the player's turn, do nothing.
+      if (currentTurn === playerColor) return;
       setTimeout(() => {
         if (currentDice.length === 0) {
           let finalDice = rollDiceSimple();
@@ -738,7 +764,8 @@
      * Human Input Handling
      ***********************************/
     boardCanvas.addEventListener("mousedown", (e) => {
-      if (currentTurn !== "w") return; // Human is White
+      // Now use playerColor instead of hardcoded "w"
+      if (currentTurn !== playerColor) return;
       const rect = boardCanvas.getBoundingClientRect();
       const mx = e.clientX - rect.left;
       const my = e.clientY - rect.top;
@@ -782,6 +809,26 @@
       if (currentDice.length) drawDice(currentDice);
       drawBarPieces();
     });
+    
+    /***********************************
+     * Custom Dice Controls
+     ***********************************/
+    document.getElementById("setCustomDiceBtn").onclick = () => {
+      const die1 = parseInt(document.getElementById("customDie1").value);
+      const die2 = parseInt(document.getElementById("customDie2").value);
+      if(isNaN(die1) || isNaN(die2) || die1 < 1 || die1 > 6 || die2 < 1 || die2 > 6) {
+        alert("Please enter valid dice values (1–6).");
+        return;
+      }
+      customDice = [die1, die2];
+      console.log("Custom dice set:", customDice);
+    };
+    document.getElementById("clearCustomDiceBtn").onclick = () => {
+      customDice = null;
+      document.getElementById("customDie1").value = "";
+      document.getElementById("customDie2").value = "";
+      console.log("Custom dice cleared");
+    };
     
     /***********************************
      * Start Game & Main Loop Initialization
