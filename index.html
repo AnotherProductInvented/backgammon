@@ -2,21 +2,27 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>Backgammon – Integrated Bear-Off Zones</title>
+  <title>Backgammon – Integrated Bear-Off & Animated Dice</title>
   <style>
     body {
-      margin: 0; padding: 0;
+      margin: 0; 
+      padding: 0;
       background: #fff;
       font-family: sans-serif;
-      display: flex; flex-direction: column; align-items: center;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
     }
     h1 { margin: 1rem 0 0.5rem; text-align: center; }
     .overlayScreen {
-      position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+      position: fixed;
+      top: 0; left: 0; right: 0; bottom: 0;
       display: none;
       background: rgba(255,255,255,0.95);
-      align-items: center; justify-content: center;
-      flex-direction: column; text-align: center;
+      align-items: center;
+      justify-content: center;
+      flex-direction: column;
+      text-align: center;
       z-index: 5;
     }
     /* Overlays */
@@ -26,22 +32,37 @@
     input { font-size: 18px; margin: 5px; padding: 5px; width: 50px; text-align: center; }
     /* Main container: 3 columns (Bar, Board, Dice) */
     #mainContainer {
-      display: flex; flex-direction: row; align-items: flex-start; margin-top: 20px;
+      display: flex;
+      flex-direction: row;
+      align-items: flex-start;
+      margin-top: 20px;
     }
     #barContainer { width: 150px; text-align: center; }
-    /* The board canvas now integrates bear-off zones:
-       - Top zone for White bear-off (from y=20 to y=boardTop-20)
-       - Board area from boardTop to boardTop+boardHeight
-       - Bottom zone for Black bear-off (from boardTop+boardHeight+20 to HEIGHT-20)
+    /* The boardCanvas integrates bear-off zones:
+         - Top zone for White bear-off (from y=20 to boardTop-20)
+         - Main board from boardTop to boardTop+boardHeight
+         - Bottom zone for Black bear-off (from boardTop+boardHeight+20 to HEIGHT-20)
     */
-    #boardContainer { position: relative; width: 720px; height: 800px; background: #f5f5f5; margin: 0 20px; }
+    #boardContainer { 
+      position: relative; 
+      width: 720px; 
+      height: 800px; 
+      background: #f5f5f5; 
+      margin: 0 20px;
+    }
     #diceContainer { width: 150px; text-align: center; }
     canvas {
       background: #fff;
       border: 2px solid #000;
-      display: block; margin: 10px auto;
+      display: block;
+      margin: 10px auto;
     }
-    #logo { position: fixed; bottom: 10px; right: 10px; max-width: 100px; z-index: 2000; }
+    #logo { 
+      position: fixed; 
+      bottom: 10px; right: 10px; 
+      max-width: 100px; 
+      z-index: 2000; 
+    }
   </style>
 </head>
 <body>
@@ -67,11 +88,11 @@
   <div id="instructionsScreen" class="overlayScreen">
     <h2>How to Play</h2>
     <p>
-      Rolling the Dice – Each player rolls two dice and moves their checkers based on the numbers rolled.<br>
+      Rolling the Dice – Each player rolls two dice (animated for effect) and moves their checkers based on the numbers rolled.<br>
       Moving Checkers – Checkers move toward your home board. You can split or combine dice values for movement.<br>
       Landing on a Point – You can land on an open point or one occupied by your checkers. Landing on a single opponent checker (a blot) sends it to the bar.<br>
       Re-entering from the Bar – If you have a checker on the bar, you must enter it before making other moves.<br>
-      Bearing Off – Once all your checkers are in your home board, you can bear them off by rolling dice that match occupied points.<br>
+      Bearing Off – Once all your checkers are in your home board, you can bear them off by rolling dice matching occupied points.<br>
       (White can bear off only if all white checkers are in points 19–24; Black only if all black checkers are in points 1–6.)<br>
       Winning – The first player to bear off all their checkers wins.<br>
       Press [M] to return to the main menu.
@@ -94,14 +115,14 @@
     <button id="customRollBtn">Roll Custom</button>
   </div>
 
-  <!-- Main Game Container -->
+  <!-- Main Game Container: 3 Columns (Bar, Board, Dice) -->
   <div id="mainContainer">
     <!-- Bar Column -->
     <div id="barContainer">
       <h3>Bar</h3>
       <canvas id="barCanvas" width="150" height="200"></canvas>
     </div>
-    <!-- Board Column (integrated bear-off zones) -->
+    <!-- Board Column (Integrated Bear-Off Zones) -->
     <div id="boardContainer">
       <canvas id="boardCanvas" width="720" height="800"></canvas>
     </div>
@@ -115,10 +136,9 @@
   <img id="logo" src="logo.png" alt="Logo">
 
   <script>
-    // Set testingMode true to enable custom roll controls (false for production)
-    const testingMode = true;
-
-    /* --- Bug Logging --- */
+    /* =======================
+       Utility & Bug Logging
+    ========================== */
     let bugLogs = [];
     function logBug(loc, details) {
       const entry = { time: new Date().toISOString(), loc, details };
@@ -128,7 +148,9 @@
     window.onerror = (msg, src, line, col, err) =>
       logBug("Global", { msg, src, line, col, err });
 
-    /* --- Globals & Constants --- */
+    /* =======================
+       Global Variables & Constants
+    ========================== */
     const boardCanvas = document.getElementById("boardCanvas"),
           ctx = boardCanvas.getContext("2d"),
           diceCanvas = document.getElementById("diceCanvas"),
@@ -148,15 +170,17 @@
           customRollBtn = document.getElementById("customRollBtn"),
           customRollToggleBtn = document.getElementById("customRollToggleBtn");
 
-    // Board dimensions & margins.
-    // We reserve top 150px for White's bear-off zone and bottom 100px for Black's.
+    // Board dimensions: reserve top 130px for White's bear-off zone and bottom 80px for Black's.
     const WIDTH = 720, HEIGHT = 800,
-          boardMargin = 20, boardTop = 150, boardHeight = 500,
-          boardWidth = WIDTH - 2*boardMargin, pointWidth = boardWidth / 12;
+          boardMargin = 20,
+          boardTop = 130,
+          boardHeight = 800 - boardTop - 80,  // main board area height
+          boardWidth = WIDTH - 2*boardMargin,
+          pointWidth = boardWidth/12;
 
-    /* Game variables */
+    // Game state and variables
     let gameState = "menu", playerColor = null, difficulty = null,
-        // White moves upward; Black moves downward.
+        // White moves upward (points 1→24), Black moves downward (points 24→1)
         currentTurn = "w", selectedPoint = null, legalMoves = [],
         currentDice = [], aiThinking = false,
         borneOff = { w: 0, b: 0 },
@@ -168,169 +192,86 @@
       return difficulty === "hard" ? 1800 : difficulty === "medium" ? 1500 : 1200;
     }
 
-    /* --- Game Initialization --- */
-    function initBoard() {
-      try {
-        board.fill(null);
-        borneOff = { w: 0, b: 0 };
-        bar = { w: 0, b: 0 };
-        // White uses "Black" starting positions (White moves upward from point 1)
-        board[0]  = { owner: 'w', count: 2 };      // point 1
-        board[11] = { owner: 'w', count: 5 };      // point 12
-        board[16] = { owner: 'w', count: 3 };      // point 17
-        board[18] = { owner: 'w', count: 5 };      // point 19
-        // Black uses "White" starting positions (Black moves downward from point 24)
-        board[23] = { owner: 'b', count: 2 };      // point 24
-        board[12] = { owner: 'b', count: 5 };      // point 13
-        board[7]  = { owner: 'b', count: 3 };      // point 8
-        board[5]  = { owner: 'b', count: 5 };      // point 6
-        currentTurn = "w";
-        currentDice = [];
-        selectedPoint = null;
-        legalMoves = [];
-      } catch (err) { logBug("initBoard", err); }
-    }
+    // Testing mode: set to true to show custom roll controls
+    const testingMode = true;
 
-    /* --- Dice Functions --- */
-    function rollDice() {
-      try {
-        const d1 = Math.floor(Math.random()*6)+1,
-              d2 = Math.floor(Math.random()*6)+1;
-        return (d1 === d2) ? [d1,d1,d1,d1] : [d1,d2];
-      } catch (err) { logBug("rollDice", err); return []; }
-    }
-    function drawDiceOnCanvas() {
-      diceCtx.clearRect(0, 0, diceCanvas.width, diceCanvas.height);
-      if(!currentDice.length) return;
-      const diceToShow = currentDice.slice(0,2),
-            diceSize = 60, spacing = 10;
-      diceToShow.forEach((d, i) => drawDieOnCanvas(diceCtx, i*(diceSize+spacing), 0, diceSize, d));
-    }
-    function drawDieOnCanvas(ctx, x, y, size, value) {
-      ctx.fillStyle="#fff";
-      ctx.fillRect(x, y, size, size);
-      ctx.strokeStyle="#000";
-      ctx.strokeRect(x, y, size, size);
-      ctx.fillStyle="#000";
-      const dotRadius = size/10, cx = x+size/2, cy = y+size/2;
-      const positions = {
-        tl: { x: x+size*0.25, y: y+size*0.25 },
-        tr: { x: x+size*0.75, y: y+size*0.25 },
-        mid: { x: cx, y: cy },
-        bl: { x: x+size*0.25, y: y+size*0.75 },
-        br: { x: x+size*0.75, y: y+size*0.75 },
-        ml: { x: x+size*0.25, y: cy },
-        mr: { x: x+size*0.75, y: cy }
-      };
-      function drawDot(pos) { ctx.beginPath(); ctx.arc(pos.x, pos.y, dotRadius, 0, 2*Math.PI); ctx.fill(); }
-      switch(value){
-        case 1: drawDot(positions.mid); break;
-        case 2: drawDot(positions.tl); drawDot(positions.br); break;
-        case 3: drawDot(positions.tl); drawDot(positions.mid); drawDot(positions.br); break;
-        case 4: drawDot(positions.tl); drawDot(positions.tr); drawDot(positions.bl); drawDot(positions.br); break;
-        case 5: drawDot(positions.tl); drawDot(positions.tr); drawDot(positions.mid); drawDot(positions.bl); drawDot(positions.br); break;
-        case 6: drawDot(positions.tl); drawDot(positions.tr); drawDot(positions.ml); drawDot(positions.mr); drawDot(positions.bl); drawDot(positions.br); break;
-      }
-    }
-    rollDiceBtn.onclick = function(){
-      if(!currentDice.length && currentTurn===playerColor){
-        currentDice = rollDice();
-        drawDiceOnCanvas();
-        if(currentDice.length>0 && !hasLegalMoves()){
-          currentDice=[];
-          showNoLegalMove();
-          return;
-        }
-        rollDiceBtn.style.display="none";
-        redrawGame();
-      }
-    };
-
-    /* --- Custom Roll (Testing Mode) --- */
-    if(testingMode){
-      customRollToggleBtn.style.display="block";
-      customRollToggleBtn.onclick = ()=>{
-        customRollOverlay.style.display="flex";
-      };
-      customRollBtn.onclick = ()=>{
-        const die1 = parseInt(document.getElementById("customDie1").value),
-              die2 = parseInt(document.getElementById("customDie2").value);
-        if(die1<1 || die1>6 || die2<1 || die2>6){
-          alert("Enter values 1–6 only.");
-          return;
-        }
-        currentDice = (die1===die2) ? [die1,die1,die1,die1] : [die1,die2];
-        drawDiceOnCanvas();
-        customRollOverlay.style.display="none";
-        if(currentDice.length>0 && !hasLegalMoves()){
-          currentDice=[];
-          showNoLegalMove();
-          return;
-        }
-        rollDiceBtn.style.display="none";
-        redrawGame();
-      };
-    }
-    function updateCustomRollVisibility(){
-      if(testingMode){
-        if(currentTurn===playerColor){
-          customRollToggleBtn.style.display="block";
+    /* =======================
+       Dice Animation Function
+    ========================== */
+    function animateDice(finalDice, duration, callback) {
+      let startTime = Date.now();
+      let interval = setInterval(() => {
+        let elapsed = Date.now() - startTime;
+        if (elapsed < duration) {
+          // Draw random dice values
+          let randomDice = [Math.floor(Math.random()*6)+1, Math.floor(Math.random()*6)+1];
+          currentDice = randomDice;
+          drawDiceOnCanvas();
         } else {
-          customRollToggleBtn.style.display="none";
+          clearInterval(interval);
+          currentDice = finalDice;
+          drawDiceOnCanvas();
+          if(callback) callback();
         }
-      }
+      }, 100);
     }
 
-    /* --- Board Drawing --- */
+    /* =======================
+       Board & Bear-Off Zone Drawing
+    ========================== */
     function drawBoard(){
       try {
         ctx.clearRect(0, 0, WIDTH, HEIGHT);
-        // Draw bear-off zones integrated into board:
-        // Top zone for White's bear-off (reserved top 130px)
-        ctx.fillStyle="#e0e0e0";
-        ctx.fillRect(0, 20, WIDTH, boardTop - 40);
-        ctx.strokeStyle="blue";
-        ctx.lineWidth=3;
-        ctx.strokeRect(boardMargin, 20, boardWidth, boardTop - 40);
-        ctx.font="16px sans-serif";
-        ctx.fillStyle="blue";
-        ctx.textAlign="center";
+        // Draw bear-off zones integrated in board:
+        // Top zone for White's bear-off: from y=20 to boardTop-20
+        ctx.fillStyle = "#e0e0e0";
+        ctx.fillRect(0, 20, WIDTH, boardTop-20);
+        ctx.strokeStyle = "blue";
+        ctx.lineWidth = 3;
+        ctx.strokeRect(boardMargin, 20, boardWidth, boardTop-40);
+        ctx.font = "16px sans-serif";
+        ctx.fillStyle = "blue";
+        ctx.textAlign = "center";
         ctx.fillText("White Bear Off", boardMargin + boardWidth/2, 40);
-        // Bottom zone for Black's bear-off (reserved bottom 80px)
-        ctx.fillStyle="#e0e0e0";
-        ctx.fillRect(0, boardTop + boardHeight + 20, WIDTH, HEIGHT - (boardTop+boardHeight+20));
-        ctx.strokeStyle="blue";
-        ctx.strokeRect(boardMargin, boardTop + boardHeight + 20, boardWidth, HEIGHT - (boardTop+boardHeight+20));
-        ctx.fillStyle="blue";
+        // Bottom zone for Black's bear-off: from boardTop+boardHeight+20 to HEIGHT-20
+        ctx.fillStyle = "#e0e0e0";
+        ctx.fillRect(0, boardTop+boardHeight+20, WIDTH, HEIGHT - (boardTop+boardHeight+20));
+        ctx.strokeStyle = "blue";
+        ctx.strokeRect(boardMargin, boardTop+boardHeight+20, boardWidth, HEIGHT - (boardTop+boardHeight+20) - 20);
+        ctx.fillStyle = "blue";
         ctx.fillText("Black Bear Off", boardMargin + boardWidth/2, boardTop+boardHeight+40);
-        // Draw main board area.
-        ctx.fillStyle="#f5f5f5";
+        // Draw main board area:
+        ctx.fillStyle = "#f5f5f5";
         ctx.fillRect(0, boardTop, WIDTH, boardHeight);
-        ctx.fillStyle="#006400";
+        ctx.fillStyle = "#006400";
         ctx.fillRect(boardMargin, boardTop, boardWidth, boardHeight);
-        // Draw triangles for top row (points 13–24)
+        // Draw top row triangles (points 13–24)
         for(let p=13; p<=24; p++){
-          let idx=p-1;
+          let idx = p-1;
           let x = boardMargin + (p-13)*pointWidth;
           let y = boardTop;
-          let tri = { x, y, width: pointWidth, height: boardHeight/2, direction: "down" };
+          let tri = { x, y, width: pointWidth, height: boardHeight/2, direction:"down" };
           let color = (p%2===0) ? "#deb887" : "#d2b48c";
           drawTriangle(tri.x, tri.y, tri.width, tri.height, tri.direction, color);
         }
-        // Draw triangles for bottom row (points 1–12)
+        // Draw bottom row triangles (points 1–12)
         for(let p=1; p<=12; p++){
           let pos = 12 - p;
           let x = boardMargin + pos * pointWidth;
           let y = boardTop + boardHeight/2;
-          let tri = { x, y, width: pointWidth, height: boardHeight/2, direction: "up" };
+          let tri = { x, y, width: pointWidth, height: boardHeight/2, direction:"up" };
           let color = (p%2===0) ? "#deb887" : "#d2b48c";
           drawTriangle(tri.x, tri.y, tri.width, tri.height, tri.direction, color);
         }
+        // Draw borne-off pieces in the bear-off zones:
+        drawBearOffPieces();
+        // Reset lineWidth
+        ctx.lineWidth = 1;
       } catch(err){ logBug("drawBoard", err); }
     }
-    function drawTriangle(x,y,width,height,direction,color){
+    function drawTriangle(x, y, width, height, direction, color){
       try {
-        ctx.fillStyle=color;
+        ctx.fillStyle = color;
         ctx.beginPath();
         if(direction==="up"){
           ctx.moveTo(x, y+height);
@@ -343,35 +284,15 @@
         }
         ctx.closePath();
         ctx.fill();
-        ctx.strokeStyle="#000";
+        ctx.strokeStyle = "#000";
         ctx.stroke();
       } catch(err){ logBug("drawTriangle", err); }
     }
-    function getTriangleCoordinates(idx){
-      let x, y, width = pointWidth, height;
-      if(idx>=12 && idx<=23){
-        let p = idx+1;
-        x = boardMargin + (p-13)*pointWidth;
-        y = boardTop;
-        height = boardHeight/2;
-        return { x, y, width, height, direction: "down" };
-      } else if(idx>=0 && idx<=11){
-        let p = idx+1;
-        let pos = 12-p;
-        x = boardMargin + pos*pointWidth;
-        y = boardTop + boardHeight/2;
-        height = boardHeight/2;
-        return { x, y, width, height, direction: "up" };
-      }
-      return null;
-    }
-
-    /* --- Bear-Off Move Drawing --- */
-    // Instead of a separate canvas, we draw the borne-off pieces directly in the bear-off zones.
+    // Draw borne-off pieces in the integrated zones.
     function drawBearOffPieces(){
       const pieceRadius = 15, spacing = pieceRadius * 2.2;
-      // White borne-off pieces: draw in the top bear-off zone (at the bottom edge of that zone)
-      for(let i = 0; i < borneOff.w; i++){
+      // White borne-off: drawn in the top bear-off zone (bottom edge of that zone)
+      for(let i=0; i<borneOff.w; i++){
         let cx = boardMargin + 30 + i * spacing;
         let cy = boardTop - 30; // 30px above boardTop
         ctx.beginPath();
@@ -381,8 +302,8 @@
         ctx.strokeStyle = "#000";
         ctx.stroke();
       }
-      // Black borne-off pieces: draw in the bottom bear-off zone (at the top edge of that zone)
-      for(let i = 0; i < borneOff.b; i++){
+      // Black borne-off: drawn in the bottom bear-off zone (top edge of that zone)
+      for(let i=0; i<borneOff.b; i++){
         let cx = boardMargin + 30 + i * spacing;
         let cy = boardTop + boardHeight + 50; // 50px below boardTop+boardHeight
         ctx.beginPath();
@@ -393,22 +314,20 @@
         ctx.stroke();
       }
     }
-
-    /* --- Pieces on Board Drawing --- */
     function drawPieces(){
       try {
-        ctx.font="20px sans-serif";
-        ctx.textAlign="center";
+        ctx.font="20px sans-serif"; 
+        ctx.textAlign="center"; 
         ctx.textBaseline="middle";
-        for(let i = 0; i < 24; i++){
+        for(let i=0;i<24;i++){
           if(!board[i]) continue;
           let tri = getTriangleCoordinates(i);
           let centerX = tri.x + tri.width/2;
-          let spacing = Math.min(tri.width, tri.height)/2.2;
-          for(let j = 0; j < board[i].count; j++){
-            let centerY = (i >= 12)
-              ? tri.y + (j+0.5)*spacing  // Black: stack from top
-              : tri.y + tri.height - (j+0.5)*spacing; // White: stack from bottom
+          let spacing = Math.min(tri.width,tri.height)/2.2;
+          for(let j=0;j<board[i].count;j++){
+            let centerY = (i>=12)
+              ? tri.y + (j+0.5)*spacing
+              : tri.y + tri.height - (j+0.5)*spacing;
             ctx.beginPath();
             ctx.arc(centerX, centerY, spacing*0.8, 0, 2*Math.PI);
             ctx.fillStyle = (board[i].owner==='w') ? "#fff" : "#000";
@@ -421,36 +340,97 @@
             ctx.fillText(board[i].count, centerX, tri.y+tri.height/2);
           }
         }
-      } catch(err){ logBug("drawPieces",err); }
+      } catch(err){ logBug("drawPieces", err); }
+    }
+    function getTriangleCoordinates(idx){
+      let x, y, width = pointWidth, height;
+      if(idx>=12 && idx<=23){
+        let p = idx+1;
+        x = boardMargin + (p-13)*pointWidth;
+        y = boardTop;
+        height = boardHeight/2;
+        return { x, y, width, height, direction:"down" };
+      } else if(idx>=0 && idx<=11){
+        let p = idx+1;
+        let pos = 12-p;
+        x = boardMargin + pos*pointWidth;
+        y = boardTop + boardHeight/2;
+        height = boardHeight/2;
+        return { x, y, width, height, direction:"up" };
+      }
+      return null;
     }
 
-    /* --- Highlight Legal Moves --- */
-    function highlightLegalOptions(){
-      if(selectedPoint !== null){
-        let selCoords = getTriangleCoordinates(selectedPoint);
-        if(selCoords){
-          ctx.fillStyle = "rgba(0,255,255,0.5)";
-          ctx.fillRect(selCoords.x, selCoords.y, selCoords.width, selCoords.height);
-        }
-        legalMoves.forEach(move=>{
-          if(!move.bearOff){
-            let destCoords = getTriangleCoordinates(move.to);
-            if(destCoords){
-              ctx.fillStyle = "rgba(255,255,0,0.5)";
-              ctx.fillRect(destCoords.x, destCoords.y, destCoords.width, destCoords.height);
-            }
-          }
-        });
+    /* =======================
+       Dice & Animation
+    ========================== */
+    function rollDice() {
+      try {
+        const d1 = Math.floor(Math.random()*6)+1,
+              d2 = Math.floor(Math.random()*6)+1;
+        return (d1===d2) ? [d1,d1,d1,d1] : [d1,d2];
+      } catch(err){ logBug("rollDice", err); return []; }
+    }
+    function drawDiceOnCanvas() {
+      diceCtx.clearRect(0,0,diceCanvas.width,diceCanvas.height);
+      if(!currentDice.length) return;
+      const diceToShow = currentDice.slice(0,2),
+            diceSize = 60, spacing = 10;
+      diceToShow.forEach((d,i)=> drawDieOnCanvas(diceCtx, i*(diceSize+spacing), 0, diceSize, d));
+    }
+    function drawDieOnCanvas(ctx, x, y, size, value) {
+      ctx.fillStyle="#fff";
+      ctx.fillRect(x,y,size,size);
+      ctx.strokeStyle="#000";
+      ctx.strokeRect(x,y,size,size);
+      ctx.fillStyle="#000";
+      const dotRadius = size/10, cx = x+size/2, cy = y+size/2;
+      const positions = {
+        tl: { x: x+size*0.25, y: y+size*0.25 },
+        tr: { x: x+size*0.75, y: y+size*0.25 },
+        mid: { x: cx, y: cy },
+        bl: { x: x+size*0.25, y: y+size*0.75 },
+        br: { x: x+size*0.75, y: y+size*0.75 },
+        ml: { x: x+size*0.25, y: cy },
+        mr: { x: x+size*0.75, y: cy }
+      };
+      function drawDot(pos){ ctx.beginPath(); ctx.arc(pos.x,pos.y,dotRadius,0,2*Math.PI); ctx.fill(); }
+      switch(value){
+        case 1: drawDot(positions.mid); break;
+        case 2: drawDot(positions.tl); drawDot(positions.br); break;
+        case 3: drawDot(positions.tl); drawDot(positions.mid); drawDot(positions.br); break;
+        case 4: drawDot(positions.tl); drawDot(positions.tr); drawDot(positions.bl); drawDot(positions.br); break;
+        case 5: drawDot(positions.tl); drawDot(positions.tr); drawDot(positions.mid); drawDot(positions.bl); drawDot(positions.br); break;
+        case 6: drawDot(positions.tl); drawDot(positions.tr); drawDot(positions.ml); drawDot(positions.mr); drawDot(positions.bl); drawDot(positions.br); break;
       }
     }
+    // Animate dice for a duration (in ms) before settling on the final roll.
+    function animateDice(finalDice, duration, callback) {
+      let startTime = Date.now();
+      let interval = setInterval(() => {
+        let elapsed = Date.now() - startTime;
+        if (elapsed < duration) {
+          let randomDice = [Math.floor(Math.random()*6)+1, Math.floor(Math.random()*6)+1];
+          currentDice = randomDice;
+          drawDiceOnCanvas();
+        } else {
+          clearInterval(interval);
+          currentDice = finalDice;
+          drawDiceOnCanvas();
+          if(callback) callback();
+        }
+      }, 100);
+    }
 
-    /* --- Move Logic & Bear-Off Rules --- */
+    /* =======================
+       Move Logic & Bear-Off Rules
+    ========================== */
     function canBearOff(color){
       let inHome = true;
-      for(let i = 0; i < 24; i++){
-        if(board[i] && board[i].owner === color){
-          if(color==='w' && i < 18) inHome = false;  // White must be in points 19-24 (indices 18-23)
-          if(color==='b' && i > 5) inHome = false;   // Black must be in points 1-6 (indices 0-5)
+      for(let i=0;i<24;i++){
+        if(board[i] && board[i].owner===color){
+          if(color==='w' && i < 18) inHome = false;  // White must be in points 19–24 (indices 18–23)
+          if(color==='b' && i > 5) inHome = false;   // Black must be in points 1–6 (indices 0–5)
         }
       }
       if(bar[color] > 0) inHome = false;
@@ -458,14 +438,14 @@
     }
     function getLegalMoves(pointIndex){
       let moves = [];
-      if(!board[pointIndex] || board[pointIndex].owner !== currentTurn) return moves;
+      if(!board[pointIndex] || board[pointIndex].owner!==currentTurn) return moves;
       for(let die of currentDice){
         let dest;
         if(currentTurn==='w'){
           dest = pointIndex + die;
           if(dest > 23){
             let minIndex = 24;
-            for(let i = 18; i < 24; i++){
+            for(let i=18;i<24;i++){
               if(board[i] && board[i].owner==='w'){
                 minIndex = Math.min(minIndex, i);
               }
@@ -485,7 +465,7 @@
           dest = pointIndex - die;
           if(dest < 0){
             let maxIndex = -1;
-            for(let i = 0; i < 6; i++){
+            for(let i=0;i<6;i++){
               if(board[i] && board[i].owner==='b'){
                 maxIndex = Math.max(maxIndex, i);
               }
@@ -522,8 +502,6 @@
       }
       return moves;
     }
-
-    /* --- Making Moves --- */
     function makeMove(move){
       try {
         if(move.from==="bar"){
@@ -531,7 +509,7 @@
         } else {
           if(board[move.from]){
             board[move.from].count--;
-            if(board[move.from].count===0) board[move.from] = null;
+            if(board[move.from].count===0) board[move.from]=null;
           } else { logBug("makeMove","No checker at " + move.from); }
         }
         if(move.bearOff){
@@ -559,30 +537,32 @@
     function checkGameOver(){
       if(borneOff['w']>=15){
         gameState="game_over";
-        gameOverText.textContent="Game Over: White wins!";
+        gameOverText.textContent = "Game Over: White wins!";
         showGameOver();
         return true;
       } else if(borneOff['b']>=15){
         gameState="game_over";
-        gameOverText.textContent="Game Over: Black wins!";
+        gameOverText.textContent = "Game Over: Black wins!";
         showGameOver();
         return true;
       }
       return false;
     }
 
-    /* --- Human Input Handling --- */
-    boardCanvas.addEventListener("mousedown",(e)=>{
-      if(currentTurn!==playerColor) return;
+    /* =======================
+       Human Input Handling
+    ========================== */
+    boardCanvas.addEventListener("mousedown", (e)=>{
+      if(currentTurn !== playerColor) return;
       try {
         const rect = boardCanvas.getBoundingClientRect();
         const mx = e.clientX - rect.left, my = e.clientY - rect.top;
-        let clicked = getPointFromCoordinates(mx,my);
+        let clicked = getPointFromCoordinates(mx, my);
         if(bar[currentTurn] > 0){
           let reEntry = getLegalMovesFromBar();
           if(!reEntry.length) return;
           selectedPoint = "bar"; legalMoves = reEntry;
-          let move = reEntry.find(m => m.to === clicked);
+          let move = reEntry.find(m=> m.to === clicked);
           if(move){
             redrawGame();
             setTimeout(()=>{
@@ -593,7 +573,7 @@
                 showNoLegalMove();
                 return;
               }
-              if(currentDice.length === 0){ endTurn(); }
+              if(currentDice.length===0){ endTurn(); }
             }, humanDelay);
           }
           return;
@@ -603,13 +583,15 @@
           if(board[clicked] && board[clicked].owner===currentTurn){
             let moves = getLegalMoves(clicked);
             if(moves.length){
-              selectedPoint = clicked; legalMoves = moves;
+              selectedPoint = clicked;
+              legalMoves = moves;
             }
           }
         } else {
-          let move = legalMoves.find(m => m.to === clicked);
+          let move = legalMoves.find(m=> m.to === clicked);
           if(move){
-            selectedPoint = move.from; legalMoves = [move];
+            selectedPoint = move.from;
+            legalMoves = [move];
             redrawGame();
             setTimeout(()=>{
               makeMove(move);
@@ -619,27 +601,25 @@
                 showNoLegalMove();
                 return;
               }
-              if(currentDice.length === 0){ endTurn(); }
+              if(currentDice.length===0){ endTurn(); }
             }, humanDelay);
-          } else {
-            selectedPoint = null; legalMoves = [];
-          }
+          } else { selectedPoint = null; legalMoves = []; }
         }
         redrawGame();
       } catch(err){ logBug("boardCanvas mousedown",err); }
     });
     function getPointFromCoordinates(x,y){
       try {
-        if(y < boardTop || y > boardTop + boardHeight) return null;
+        if(y < boardTop || y > boardTop+boardHeight) return null;
         let pt;
-        if(y < boardTop + boardHeight/2){
+        if(y < boardTop+boardHeight/2){
           let pos = Math.floor((x-boardMargin)/pointWidth);
-          pt = pos + 13;
+          pt = pos+13;
         } else {
           let pos = Math.floor((x-boardMargin)/pointWidth);
-          pt = 12 - pos;
+          pt = 12-pos;
         }
-        return pt - 1;
+        return pt-1;
       } catch(err){ logBug("getPointFromCoordinates",err); return null; }
     }
     function hasLegalMoves(){
@@ -657,37 +637,155 @@
       return moves.length > 0;
     }
     function endTurn(){
-      currentTurn = (currentTurn==='w')?'b':'w';
+      currentTurn = (currentTurn==='w') ? 'b' : 'w';
       if(!checkGameOver()){
         if(currentTurn===playerColor){
-          rollDiceBtn.style.display="block";
-          if(testingMode) customRollToggleBtn.style.display="block";
+          rollDiceBtn.style.display = "block";
+          if(testingMode) customRollToggleBtn.style.display = "block";
         } else {
-          rollDiceBtn.style.display="none";
-          if(testingMode) customRollToggleBtn.style.display="none";
+          rollDiceBtn.style.display = "none";
+          if(testingMode) customRollToggleBtn.style.display = "none";
           aiTurn();
         }
       }
     }
 
-    /* --- Show "No Legal Move" Overlay --- */
-    function showNoLegalMove(){
-      noLegalMoveOverlay.style.display = "flex";
-      setTimeout(()=>{
-        noLegalMoveOverlay.style.display = "none";
-        endTurn();
-      },2000);
+    /* =======================
+       Overlays & Menus
+    ========================== */
+    function hideAllScreens(){
+      menuScreen.style.display="none";
+      instructionsScreen.style.display="none";
+      colorScreen.style.display="none";
+      difficultyScreen.style.display="none";
+      gameOverScreen.style.display="none";
+      customRollOverlay.style.display="none";
+      noLegalMoveOverlay.style.display="none";
+    }
+    function showMenu(){ hideAllScreens(); gameState="menu"; menuScreen.style.display="flex"; }
+    function showInstructions(){ hideAllScreens(); gameState="instructions"; instructionsScreen.style.display="flex"; }
+    function showColorChoice(){ hideAllScreens(); gameState="color_choice"; colorScreen.style.display="flex"; }
+    function showDifficultyChoice(){ hideAllScreens(); gameState="difficulty_choice"; difficultyScreen.style.display="flex"; }
+    function showGameOver(){ hideAllScreens(); gameState="game_over"; gameOverScreen.style.display="flex"; }
+    function startGame(){
+      hideAllScreens();
+      gameState="playing";
+      initBoard();
+      redrawGame();
+      if(currentTurn===playerColor){
+        rollDiceBtn.style.display = "block";
+        if(testingMode) customRollToggleBtn.style.display = "block";
+      } else {
+        rollDiceBtn.style.display = "none";
+        if(testingMode) customRollToggleBtn.style.display = "none";
+        aiTurn();
+      }
     }
 
-    /* --- AI Turn --- */
+    document.getElementById("newGameBtn").onclick = ()=> { showColorChoice(); };
+    document.getElementById("instructionsBtn").onclick = ()=> { showInstructions(); };
+    document.getElementById("whiteSideBtn").onclick = ()=> { playerColor="w"; showDifficultyChoice(); };
+    document.getElementById("blackSideBtn").onclick = ()=> { playerColor="b"; showDifficultyChoice(); };
+    document.getElementById("easyBtn").onclick = ()=> { difficulty="easy"; startGame(); };
+    document.getElementById("mediumBtn").onclick = ()=> { difficulty="medium"; startGame(); };
+    document.getElementById("hardBtn").onclick = ()=> { difficulty="hard"; startGame(); };
+    document.getElementById("gameOverNewGameBtn").onclick = ()=> { showColorChoice(); };
+    document.addEventListener("keydown",(e)=>{
+      const key = e.key.toLowerCase();
+      if(gameState==="color_choice"){
+        if(key==="w") document.getElementById("whiteSideBtn").click();
+        if(key==="b") document.getElementById("blackSideBtn").click();
+      } else if(gameState==="difficulty_choice"){
+        if(key==="e") document.getElementById("easyBtn").click();
+        if(key==="m") document.getElementById("mediumBtn").click();
+        if(key==="h") document.getElementById("hardBtn").click();
+      } else if(["playing","instructions","game_over"].includes(gameState)){
+        if(key==="m") showMenu();
+      }
+    });
+
+    /* =======================
+       Redraw & Main Loop
+    ========================== */
+    function redrawGame(){
+      try {
+        drawBoard();
+        highlightLegalOptions();
+        drawPieces();
+        drawDiceOnCanvas();
+        drawBarPieces();
+        updateCustomRollVisibility();
+      } catch(err){ logBug("redrawGame",err); }
+    }
+    function mainLoop(){ if(gameState==="playing") redrawGame(); requestAnimationFrame(mainLoop); }
+    window.addEventListener("load", ()=> { showMenu(); mainLoop(); });
+
+    /* =======================
+       Bar Pieces Drawing
+    ========================== */
+    function drawBarPieces(){
+      try {
+        barCtx.clearRect(0,0,barCanvas.width,barCanvas.height);
+        barCtx.font = "16px sans-serif";
+        barCtx.fillStyle = "#000";
+        barCtx.fillText("Bar", barCanvas.width/2,20);
+        const pieceRadius = 15, spacing = pieceRadius * 2.2;
+        for(let j=0;j<bar.w;j++){
+          let cx = barCanvas.width/2, cy = 40+j*spacing;
+          barCtx.beginPath();
+          barCtx.arc(cx,cy,pieceRadius,0,2*Math.PI);
+          barCtx.fillStyle = "#fff"; 
+          barCtx.fill();
+          barCtx.strokeStyle = "#000"; 
+          barCtx.stroke();
+        }
+        for(let j=0;j<bar.b;j++){
+          let cx = barCanvas.width/2, cy = barCanvas.height-40-j*spacing;
+          barCtx.beginPath();
+          barCtx.arc(cx,cy,pieceRadius,0,2*Math.PI);
+          barCtx.fillStyle = "#000"; 
+          barCtx.fill();
+          barCtx.strokeStyle = "#000"; 
+          barCtx.stroke();
+        }
+      } catch(err){ logBug("drawBarPieces",err); }
+    }
+
+    /* =======================
+       Highlight Legal Moves
+    ========================== */
+    function highlightLegalOptions(){
+      if(selectedPoint !== null){
+        let selCoords = getTriangleCoordinates(selectedPoint);
+        if(selCoords){
+          ctx.fillStyle = "rgba(0,255,255,0.5)";
+          ctx.fillRect(selCoords.x, selCoords.y, selCoords.width, selCoords.height);
+        }
+        legalMoves.forEach(move=>{
+          if(!move.bearOff){
+            let destCoords = getTriangleCoordinates(move.to);
+            if(destCoords){
+              ctx.fillStyle = "rgba(255,255,0,0.5)";
+              ctx.fillRect(destCoords.x, destCoords.y, destCoords.width, destCoords.height);
+            }
+          }
+        });
+      }
+    }
+
+    /* =======================
+       AI Turn
+    ========================== */
     function aiTurn(){
       if(currentTurn===playerColor) return;
       aiThinking = true;
       let delay = getAIDelay();
       setTimeout(()=>{
         if(currentDice.length===0){
-          currentDice = rollDice();
-          drawDiceOnCanvas();
+          // Animate dice roll for 1 second
+          animateDice(rollDice(), 1000, ()=>{});
+          // Wait a little after animation
+          setTimeout(()=>{}, 1100);
         }
         if(!hasLegalMoves()){
           showNoLegalMove();
@@ -719,8 +817,8 @@
             aiThinking = false;
             currentTurn = (currentTurn==='w')?'b':'w';
             if(currentTurn===playerColor){
-              rollDiceBtn.style.display="block";
-              if(testingMode) customRollToggleBtn.style.display="block";
+              rollDiceBtn.style.display = "block";
+              if(testingMode) customRollToggleBtn.style.display = "block";
             } else {
               setTimeout(aiTurn, delay);
             }
@@ -732,95 +830,28 @@
       }, delay);
     }
 
-    /* --- Overlays & Menus --- */
-    function hideAllScreens(){
-      menuScreen.style.display="none";
-      instructionsScreen.style.display="none";
-      colorScreen.style.display="none";
-      difficultyScreen.style.display="none";
-      gameOverScreen.style.display="none";
-      customRollOverlay.style.display="none";
-      noLegalMoveOverlay.style.display="none";
+    /* =======================
+       Show "No Legal Move" Overlay
+    ========================== */
+    function showNoLegalMove(){
+      noLegalMoveOverlay.style.display = "flex";
+      setTimeout(()=>{
+        noLegalMoveOverlay.style.display = "none";
+        endTurn();
+      },2000);
     }
-    function showMenu(){ hideAllScreens(); gameState="menu"; menuScreen.style.display="flex"; }
-    function showInstructions(){ hideAllScreens(); gameState="instructions"; instructionsScreen.style.display="flex"; }
-    function showColorChoice(){ hideAllScreens(); gameState="color_choice"; colorScreen.style.display="flex"; }
-    function showDifficultyChoice(){ hideAllScreens(); gameState="difficulty_choice"; difficultyScreen.style.display="flex"; }
-    function startGame(){
-      hideAllScreens();
-      gameState="playing";
-      initBoard();
-      redrawGame();
-      if(currentTurn===playerColor){
-        rollDiceBtn.style.display="block";
-        if(testingMode) customRollToggleBtn.style.display="block";
-      } else {
-        rollDiceBtn.style.display="none";
-        if(testingMode) customRollToggleBtn.style.display="none";
-        aiTurn();
-      }
-    }
-    function showGameOver(){ hideAllScreens(); gameState="game_over"; gameOverScreen.style.display="flex"; }
 
-    document.getElementById("newGameBtn").onclick = ()=> { showColorChoice(); };
-    document.getElementById("instructionsBtn").onclick = ()=> { showInstructions(); };
-    document.getElementById("whiteSideBtn").onclick = ()=> { playerColor="w"; showDifficultyChoice(); };
-    document.getElementById("blackSideBtn").onclick = ()=> { playerColor="b"; showDifficultyChoice(); };
-    document.getElementById("easyBtn").onclick = ()=> { difficulty="easy"; startGame(); };
-    document.getElementById("mediumBtn").onclick = ()=> { difficulty="medium"; startGame(); };
-    document.getElementById("hardBtn").onclick = ()=> { difficulty="hard"; startGame(); };
-    document.getElementById("gameOverNewGameBtn").onclick = ()=> { showColorChoice(); };
-    document.addEventListener("keydown",(e)=>{
-      const key = e.key.toLowerCase();
-      if(gameState==="color_choice"){
-        if(key==="w") document.getElementById("whiteSideBtn").click();
-        if(key==="b") document.getElementById("blackSideBtn").click();
-      } else if(gameState==="difficulty_choice"){
-        if(key==="e") document.getElementById("easyBtn").click();
-        if(key==="m") document.getElementById("mediumBtn").click();
-        if(key==="h") document.getElementById("hardBtn").click();
-      } else if(["playing","instructions","game_over"].includes(gameState)){
-        if(key==="m") showMenu();
-      }
-    });
-
-    /* --- Redraw & Main Loop --- */
-    function redrawGame(){
-      try {
-        drawBoard();
-        highlightLegalOptions();
-        drawPieces();
-        drawDiceOnCanvas();
-        drawBarPieces();
-        updateCustomRollVisibility();
-      } catch(err){ logBug("redrawGame",err); }
-    }
-    function mainLoop(){ if(gameState==="playing") redrawGame(); requestAnimationFrame(mainLoop); }
-    window.addEventListener("load", ()=> { showMenu(); mainLoop(); });
-
-    /* --- Bar Pieces Drawing --- */
-    function drawBarPieces(){
-      try {
-        barCtx.clearRect(0,0,barCanvas.width,barCanvas.height);
-        barCtx.font="16px sans-serif";
-        barCtx.fillStyle="#000";
-        barCtx.fillText("Bar", barCanvas.width/2,20);
-        const pieceRadius = 15, spacing = pieceRadius*2.2;
-        for(let j=0;j<bar.w;j++){
-          let cx = barCanvas.width/2, cy = 40+j*spacing;
-          barCtx.beginPath();
-          barCtx.arc(cx,cy,pieceRadius,0,2*Math.PI);
-          barCtx.fillStyle="#fff"; barCtx.fill();
-          barCtx.strokeStyle="#000"; barCtx.stroke();
+    /* =======================
+       Update Custom Roll Visibility
+    ========================== */
+    function updateCustomRollVisibility(){
+      if(testingMode){
+        if(currentTurn===playerColor){
+          customRollToggleBtn.style.display = "block";
+        } else {
+          customRollToggleBtn.style.display = "none";
         }
-        for(let j=0;j<bar.b;j++){
-          let cx = barCanvas.width/2, cy = barCanvas.height-40-j*spacing;
-          barCtx.beginPath();
-          barCtx.arc(cx,cy,pieceRadius,0,2*Math.PI);
-          barCtx.fillStyle="#000"; barCtx.fill();
-          barCtx.strokeStyle="#000"; barCtx.stroke();
-        }
-      } catch(err){ logBug("drawBarPieces",err); }
+      }
     }
   </script>
 </body>
