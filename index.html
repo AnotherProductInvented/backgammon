@@ -152,9 +152,10 @@
   </div>
 
   <script>
-    (function(){
+    // Wrap everything in an IIFE and wait for DOMContentLoaded.
+    document.addEventListener("DOMContentLoaded", function(){
       "use strict";
-
+      
       /*==============================
         Utility & Global Variables
       ==============================*/
@@ -187,7 +188,7 @@
       const HEIGHT = boardCanvas.height; // 800
       const boardMargin = 20;
       const barWidth = 40;
-      const bearOffHeight = 100; // Reserve 100px at top and bottom for bear-off zones
+      const bearOffHeight = 100; // 100px at top and bottom for bear-off zones
       const boardTop = bearOffHeight;
       const boardHeight = HEIGHT - 2 * bearOffHeight;
       const boardWidth = WIDTH - 2 * boardMargin - barWidth;
@@ -196,11 +197,8 @@
       const whiteColor = "#fff";
       const blackColor = "#000";
 
-      // Board: using point numbers 1..24.
+      // Board representation (points 1..24)
       let board = new Array(25).fill(null);
-      // Standard starting configuration:
-      // White's home board: points 1–6 (bottom); Black's home board: points 19–24 (top).
-      // White moves by subtracting; Black moves by adding.
       board[24] = { owner: 'w', count: 2 };
       board[13] = { owner: 'w', count: 5 };
       board[8]  = { owner: 'w', count: 3 };
@@ -218,8 +216,8 @@
       let legalMoves = [];
       let currentDice = [];
 
-      let currentTurn = "w"; 
-      let playerColor = "w"; 
+      let currentTurn = "w";
+      let playerColor = "w";
       const diceAnimationDuration = 1000;
       let difficulty = "easy";
       let gameState = "menu";
@@ -227,7 +225,87 @@
       let customDice = null;
 
       /*==============================
-        Mapping Functions
+        Overlay Functions
+      ==============================*/
+      function hideAllScreens() {
+        menuScreen.style.display = "none";
+        colorScreen.style.display = "none";
+        difficultyScreen.style.display = "none";
+        instructionsScreen.style.display = "none";
+        gameOverScreen.style.display = "none";
+      }
+      function showMenu() {
+        hideAllScreens();
+        gameState = "menu";
+        menuScreen.style.display = "flex";
+      }
+      function showColorChoice() {
+        hideAllScreens();
+        gameState = "color_choice";
+        colorScreen.style.display = "flex";
+        console.log("showColorChoice() called");
+      }
+      function showDifficultyChoice() {
+        hideAllScreens();
+        gameState = "difficulty_choice";
+        difficultyScreen.style.display = "flex";
+        console.log("showDifficultyChoice() called");
+      }
+      function showInstructions() {
+        hideAllScreens();
+        gameState = "instructions";
+        instructionsScreen.style.display = "flex";
+        console.log("showInstructions() called");
+      }
+      function showGameOver(message) {
+        hideAllScreens();
+        gameState = "game_over";
+        gameOverText.textContent = message;
+        gameOverScreen.style.display = "flex";
+      }
+
+      // Set overlay button event listeners with logs.
+      document.getElementById("newGameBtn").addEventListener("click", () => {
+        console.log("New Game button clicked");
+        showColorChoice();
+      });
+      document.getElementById("instructionsBtn").addEventListener("click", () => {
+        console.log("Instructions button clicked");
+        showInstructions();
+      });
+      document.getElementById("whiteSideBtn").addEventListener("click", () => {
+        console.log("White side selected");
+        playerColor = "w";
+        currentTurn = "w";
+        showDifficultyChoice();
+      });
+      document.getElementById("blackSideBtn").addEventListener("click", () => {
+        console.log("Black side selected");
+        playerColor = "b";
+        currentTurn = "b";
+        showDifficultyChoice();
+      });
+      document.getElementById("easyBtn").addEventListener("click", () => { difficulty = "easy"; startGame(); });
+      document.getElementById("mediumBtn").addEventListener("click", () => { difficulty = "medium"; startGame(); });
+      document.getElementById("hardBtn").addEventListener("click", () => { difficulty = "hard"; startGame(); });
+      document.getElementById("gameOverNewGameBtn").addEventListener("click", () => { showColorChoice(); });
+
+      document.addEventListener("keydown", (e) => {
+        const key = e.key.toLowerCase();
+        if (colorScreen.style.display === "flex") {
+          if (key === "w") document.getElementById("whiteSideBtn").click();
+          if (key === "b") document.getElementById("blackSideBtn").click();
+        } else if (difficultyScreen.style.display === "flex") {
+          if (key === "e") document.getElementById("easyBtn").click();
+          if (key === "m") document.getElementById("mediumBtn").click();
+          if (key === "h") document.getElementById("hardBtn").click();
+        } else if (["playing", "instructions", "game_over"].includes(gameState)) {
+          if (key === "m") showMenu();
+        }
+      });
+
+      /*==============================
+        Drawing Functions
       ==============================*/
       function getCoordinatesForPoint(p) {
         let x, y, width = pointWidth, height = boardHeight / 2;
@@ -251,32 +329,7 @@
         }
         return null;
       }
-
-      /*==============================
-        Highlight Legal Moves
-      ==============================*/
-      function highlightLegalOptions() {
-        if (selectedPoint !== null) {
-          const selCoords = getCoordinatesForPoint(selectedPoint);
-          if (selCoords) {
-            ctx.strokeStyle = "red";
-            ctx.lineWidth = 4;
-            ctx.strokeRect(selCoords.x, selCoords.y, selCoords.width, selCoords.height);
-          }
-          legalMoves.forEach(move => {
-            const destCoords = getCoordinatesForPoint(move.to);
-            if (destCoords) {
-              ctx.strokeStyle = "yellow";
-              ctx.lineWidth = 4;
-              ctx.strokeRect(destCoords.x, destCoords.y, destCoords.width, destCoords.height);
-            }
-          });
-        }
-      }
-
-      /*==============================
-        Drawing Functions
-      ==============================*/
+      
       function drawBoard() {
         ctx.clearRect(0, 0, WIDTH, HEIGHT);
         // Bear-Off Zones
@@ -304,7 +357,7 @@
         ctx.fillStyle = "#8B4513";
         ctx.fillRect(boardMargin + boardWidth / 2, boardTop, barWidth, boardHeight);
 
-        // Points
+        // Points 1..24
         for (let p = 1; p <= 24; p++) {
           const coords = getCoordinatesForPoint(p);
           let color = (p % 2 === 0) ? "#deb887" : "#d2b48c";
@@ -703,11 +756,11 @@
         if (currentDice.length) drawDice(currentDice);
         drawBarPieces();
       });
-      
+
       /*==============================
         Custom Dice Controls
       ==============================*/
-      document.getElementById("setCustomDiceBtn").onclick = () => {
+      document.getElementById("setCustomDiceBtn").addEventListener("click", () => {
         const d1 = parseInt(document.getElementById("customDie1").value);
         const d2 = parseInt(document.getElementById("customDie2").value);
         if (isNaN(d1) || isNaN(d2) || d1 < 1 || d1 > 6 || d2 < 1 || d2 > 6) {
@@ -716,14 +769,14 @@
         }
         customDice = [d1, d2];
         console.log("Custom dice set:", customDice);
-      };
-      document.getElementById("clearCustomDiceBtn").onclick = () => {
+      });
+      document.getElementById("clearCustomDiceBtn").addEventListener("click", () => {
         customDice = null;
         document.getElementById("customDie1").value = "";
         document.getElementById("customDie2").value = "";
         console.log("Custom dice cleared");
-      };
-      
+      });
+
       /*==============================
         Redraw & Main Loop
       ==============================*/
@@ -772,7 +825,7 @@
         mainLoop();
       });
       
-    })();
+    });
   </script>
 </body>
 </html>
