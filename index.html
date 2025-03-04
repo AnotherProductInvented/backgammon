@@ -110,8 +110,8 @@
     <h2>How to Play</h2>
     <p>
       <strong>Rolling the Dice</strong> – Each player rolls two dice (animated) and moves their checkers based on the numbers rolled.<br>
-      <strong>Moving Checkers</strong> – <em>White moves upward</em> from point 1 to 24 and bears off when all checkers are in the high‑numbered quadrant (points 19–24).<br>
-      &nbsp;&nbsp;&nbsp;&nbsp;– <em>Black moves downward</em> from point 24 to 1 and bears off when all checkers are in the low‑numbered quadrant (points 1–6).<br>
+      <strong>Moving Checkers</strong> – <em>White moves upward</em> from point 1 to 24 (by adding the die) and bears off when all checkers are in the high‑numbered quadrant (points 19–24).<br>
+      &nbsp;&nbsp;&nbsp;&nbsp;– <em>Black moves downward</em> from point 24 to 1 (by subtracting the die) and bears off when all checkers are in the low‑numbered quadrant (points 1–6).<br>
       <strong>Landing on a Point</strong> – You may land on an open point or one occupied by your own checkers. Landing on a single opponent checker (a blot) sends it to the bar.<br>
       <strong>Re-entering from the Bar</strong> – If you have checkers on the bar, you must re‑enter them.<br>
       <strong>Bearing Off</strong> – You can bear off only when all your checkers are in your home board.<br>
@@ -191,8 +191,7 @@
     const bearOffBottom = 100;
     const boardTop = bearOffTop;
     const boardHeight = HEIGHT - bearOffTop - bearOffBottom;
-    const boardWidth = WIDTH - 2 * boardMargin - barWidth;
-    const pointWidth = boardWidth / 12;
+    const pointWidth = (WIDTH - 2 * boardMargin - barWidth) / 12;
 
     // Colors
     const whiteColor = "#fff";
@@ -200,7 +199,9 @@
 
     // Game state and configuration variables
     let board = new Array(24).fill(null);
-    // Initial board configuration (indices based on new configuration)
+    // Starting configuration based on points:
+    // White on points 1, 12, 17, 19  → indices 0, 11, 16, 18
+    // Black on points 24, 13, 8, 6   → indices 23, 12, 7, 5
     board[0]  = { owner: 'w', count: 2 };
     board[11] = { owner: 'w', count: 5 };
     board[16] = { owner: 'w', count: 3 };
@@ -301,7 +302,7 @@
      ***********************************/
     function drawBoard() {
       ctx.clearRect(0, 0, WIDTH, HEIGHT);
-      // White Bear-Off Zone (top)
+      // White Bear-Off Zone (top right)
       ctx.fillStyle = "#e0e0e0";
       ctx.fillRect(boardMargin, 20, WIDTH - 2 * boardMargin, bearOffTop - 20);
       ctx.strokeStyle = "blue";
@@ -310,57 +311,60 @@
       ctx.font = "18px sans-serif";
       ctx.fillStyle = "blue";
       ctx.textAlign = "center";
-      ctx.fillText("White Bear Off", WIDTH / 2, 40);
+      ctx.fillText("White Bear Off", WIDTH/2, 40);
       
-      // Black Bear-Off Zone (bottom)
+      // Black Bear-Off Zone (bottom left)
       ctx.fillStyle = "#e0e0e0";
       ctx.fillRect(boardMargin, boardTop + boardHeight + 20, WIDTH - 2 * boardMargin, bearOffBottom - 20);
       ctx.strokeStyle = "blue";
       ctx.strokeRect(boardMargin, boardTop + boardHeight + 20, WIDTH - 2 * boardMargin, bearOffBottom - 20);
-      ctx.fillText("Black Bear Off", WIDTH / 2, boardTop + boardHeight + 40);
+      ctx.fillText("Black Bear Off", WIDTH/2, boardTop + boardHeight + 40);
       
       // Main board background
       ctx.fillStyle = "#f5f5f5";
       ctx.fillRect(0, boardTop, WIDTH, boardHeight);
       
-      // Board halves (green)
+      // Draw board halves
+      // Left half of board (points 1–6 & 13–18)
       ctx.fillStyle = "#006400";
-      ctx.fillRect(boardMargin, boardTop, boardWidth/2, boardHeight);
-      ctx.fillRect(boardMargin + boardWidth/2 + barWidth, boardTop, boardWidth/2, boardHeight);
+      ctx.fillRect(boardMargin, boardTop, (boardWidth/2), boardHeight);
+      // Right half of board (points 7–12 & 19–24)
+      ctx.fillRect(boardMargin + boardWidth/2 + barWidth, boardTop, (boardWidth/2), boardHeight);
       
       // Central bar
       ctx.fillStyle = "#8B4513";
       ctx.fillRect(boardMargin + boardWidth/2, boardTop, barWidth, boardHeight);
       
-      // Triangles for bottom row (points 1–12) – drawn right-to‑left
-      for (let p = 1; p <= 12; p++) {
-        let pos = 12 - p;
-        let x = boardMargin + pos * pointWidth;
-        let y = boardTop + boardHeight - boardHeight/2;
-        let direction = "up";
-        let color = (p % 2 === 0) ? "#deb887" : "#d2b48c";
-        drawTriangle(x, y, pointWidth, boardHeight/2, direction, color);
+      // Triangles for bottom row (points 1–12) – drawn left-to-right
+      for (let i = 0; i < 12; i++) {
+        let x = boardMargin + i * pointWidth;
+        let y = boardTop + boardHeight/2;
+        let color = (i % 2 === 0) ? "#deb887" : "#d2b48c";
+        drawTriangle(x, y, pointWidth, boardHeight/2, "up", color);
       }
-      // Triangles for top row (points 13–24) – drawn left-to‑right
-      for (let p = 13; p <= 24; p++) {
-        let idx = p - 13;
-        let x = boardMargin + idx * pointWidth;
+      // Triangles for top row (points 13–24) – drawn left-to-right
+      for (let i = 0; i < 12; i++) {
+        let x = boardMargin + i * pointWidth;
         let y = boardTop;
-        let direction = "down";
-        let color = (p % 2 === 0) ? "#deb887" : "#d2b48c";
-        drawTriangle(x, y, pointWidth, boardHeight/2, direction, color);
+        let color = (i % 2 === 0) ? "#deb887" : "#d2b48c";
+        drawTriangle(x, y, pointWidth, boardHeight/2, "down", color);
       }
       drawBearOffPieces();
     }
     
+    // For the new linear numbering:
+    // Bottom row (indices 0-11) represent points 1–12 (drawn left-to-right)
+    // Top row (indices 12-23) represent points 13–24 (drawn left-to-right)
     function drawTriangle(x, y, width, height, direction, color) {
       ctx.fillStyle = color;
       ctx.beginPath();
       if (direction === "up") {
+        // For bottom row, triangles point upward.
         ctx.moveTo(x, y + height);
         ctx.lineTo(x + width/2, y);
         ctx.lineTo(x + width, y + height);
       } else {
+        // For top row, triangles point downward.
         ctx.moveTo(x, y);
         ctx.lineTo(x + width/2, y + height);
         ctx.lineTo(x + width, y);
@@ -371,38 +375,54 @@
       ctx.stroke();
     }
     
+    // New mapping: 
+    // For indices 0–11 (bottom row), x = boardMargin + index*pointWidth, y = boardTop+boardHeight/2
+    // For indices 12–23 (top row), x = boardMargin + (index-12)*pointWidth, y = boardTop
     function getTriangleCoordinates(idx) {
-      let x, y, width = pointWidth, height;
-      if (idx >= 12 && idx <= 23) {
-        let p = idx + 1;
-        x = boardMargin + (p - 13) * pointWidth;
-        y = boardTop;
-        height = boardHeight/2;
-        return { x, y, width, height };
-      } else if (idx >= 0 && idx <= 11) {
-        let p = idx + 1;
-        let pos = 12 - p;
-        x = boardMargin + pos * pointWidth;
+      let x, y, width = pointWidth, height = boardHeight/2;
+      if (idx >= 0 && idx <= 11) {
+        x = boardMargin + idx * pointWidth;
         y = boardTop + boardHeight/2;
-        height = boardHeight/2;
         return { x, y, width, height };
+      } else if (idx >= 12 && idx <= 23) {
+        x = boardMargin + (idx - 12) * pointWidth;
+        y = boardTop;
+        return { x, y, width, height };
+      }
+      return null;
+    }
+    
+    // New getPointFromCoordinates:
+    // If clicking in the bottom half, return an index 0–11; if in top half, return 12–23.
+    function getPointFromCoordinates(x, y) {
+      if (y >= boardTop + boardHeight/2 && y <= boardTop + boardHeight) {
+        let pos = Math.floor((x - boardMargin) / pointWidth);
+        return pos; // indices 0–11 (points 1–12)
+      } else if (y >= boardTop && y < boardTop + boardHeight/2) {
+        let pos = Math.floor((x - boardMargin) / pointWidth);
+        return pos + 12; // indices 12–23 (points 13–24)
       }
       return null;
     }
     
     function drawBearOffPieces() {
       const pieceRadius = 15, spacing = pieceRadius * 2.2;
-      // White’s home board: points 19–24 (indices 18–23)
-      for (let i = 0; i < borneOff.w; i++) {
-        let cx = boardMargin + 30 + i * spacing;
-        let cy = boardTop + boardHeight/2 - 30;
-        drawChecker(cx, cy, pieceRadius, 'w');
+      // White’s home board: points 19–24 (indices 18–23) → drawn near top right of the board.
+      for (let i = 18; i < 24; i++) {
+        for (let j = 0; j < (borneOff.w || 0); j++) {
+          // For simplicity, draw them in a row from the right edge of the top bear off zone.
+          let cx = WIDTH - boardMargin - 30 - j * spacing;
+          let cy = 20 + (bearOffTop - 20) / 2;
+          drawChecker(cx, cy, pieceRadius, 'w');
+        }
       }
-      // Black’s home board: points 1–6 (indices 0–5)
-      for (let i = 0; i < borneOff.b; i++) {
-        let cx = boardMargin + 30 + i * spacing;
-        let cy = boardTop + boardHeight/2 + 50;
-        drawChecker(cx, cy, pieceRadius, 'b');
+      // Black’s home board: points 1–6 (indices 0–5) → drawn near bottom left.
+      for (let i = 0; i < 6; i++) {
+        for (let j = 0; j < (borneOff.b || 0); j++) {
+          let cx = boardMargin + 30 + j * spacing;
+          let cy = boardTop + boardHeight + 20 + (bearOffBottom - 20) / 2;
+          drawChecker(cx, cy, pieceRadius, 'b');
+        }
       }
     }
     
@@ -423,8 +443,8 @@
         let spacing = Math.min(tri.width, tri.height) / 3;
         for (let j = 0; j < board[i].count; j++) {
           let centerY = (i < 12) ? 
-              tri.y + tri.height - (j + 0.5) * spacing :
-              tri.y + (j + 0.5) * spacing;
+              tri.y + (j + 0.5) * spacing :  // bottom row: left-to-right order
+              tri.y + (j + 0.5) * spacing;     // top row: left-to-right order
           drawChecker(centerX, centerY, 15, board[i].owner);
         }
       }
@@ -554,38 +574,7 @@
     /***********************************
      * Move & AI Functions
      ***********************************/
-    function getPointFromCoordinates(x, y) {
-      if (y < boardTop || y > boardTop + boardHeight) return null;
-      let pt;
-      if (y < boardTop + boardHeight/2) {
-        let pos = Math.floor((x - boardMargin) / pointWidth);
-        pt = pos + 13;
-      } else {
-        let pos = Math.floor((x - boardMargin) / pointWidth);
-        pt = 12 - pos;
-      }
-      return pt - 1;
-    }
-    
-    function highlightLegalOptions() {
-      if (selectedPoint !== null) {
-        let selCoords = getTriangleCoordinates(selectedPoint);
-        if (selCoords) {
-          ctx.strokeStyle = "red";
-          ctx.lineWidth = 4;
-          ctx.strokeRect(selCoords.x, selCoords.y, selCoords.width, selCoords.height);
-        }
-        legalMoves.forEach(move => {
-          let dest = getTriangleCoordinates(move.to);
-          if (dest) {
-            ctx.strokeStyle = "yellow";
-            ctx.lineWidth = 4;
-            ctx.strokeRect(dest.x, dest.y, dest.width, dest.height);
-          }
-        });
-      }
-    }
-    
+    // For movement: white moves upward (i.e. to higher indices) and black moves downward.
     function getLegalMoves(pointIndex) {
       let moves = [];
       if (!board[pointIndex] || board[pointIndex].owner !== currentTurn) return moves;
@@ -630,6 +619,7 @@
       return moves;
     }
     
+    // Home board: white is points 19–24 (indices 18–23), black is points 1–6 (indices 0–5)
     function allCheckersInHome(color) {
       for (let i = 0; i < 24; i++) {
         if (board[i] && board[i].owner === color) {
@@ -671,8 +661,7 @@
     }
     
     function aiTurn() {
-      // If it's the player's turn, do nothing.
-      if (currentTurn === playerColor) return;
+      if (currentTurn === playerColor) return; // Wait for human
       setTimeout(() => {
         if (currentDice.length === 0) {
           let finalDice = rollDiceSimple();
@@ -764,14 +753,13 @@
      * Human Input Handling
      ***********************************/
     boardCanvas.addEventListener("mousedown", (e) => {
-      // Now use playerColor instead of hardcoded "w"
       if (currentTurn !== playerColor) return;
       const rect = boardCanvas.getBoundingClientRect();
       const mx = e.clientX - rect.left;
       const my = e.clientY - rect.top;
       let clicked = getPointFromCoordinates(mx, my);
       if (clicked === null) return;
-      // If checkers are on the bar, force re-entry.
+      // If checkers on bar, force re-entry.
       if (bar[currentTurn] > 0) {
         let reEntryMoves = getLegalMovesFromBar();
         if (!reEntryMoves.length) return;
@@ -792,7 +780,6 @@
           legalMoves = getLegalMoves(clicked);
         }
       } else {
-        // Reselect if clicking on another own point.
         if (board[clicked] && board[clicked].owner === currentTurn && clicked !== selectedPoint) {
           selectedPoint = clicked;
           legalMoves = getLegalMoves(clicked);
