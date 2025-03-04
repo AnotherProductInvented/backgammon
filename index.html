@@ -5,27 +5,23 @@
   <title>Backgammon – Final Version</title>
   <style>
     body {
-      margin: 0;
-      padding: 0;
+      margin: 0; padding: 0;
       background: #fff;
       font-family: sans-serif;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
+      display: flex; flex-direction: column; align-items: center;
     }
     h1 { margin: 1rem 0 0.5rem; text-align: center; }
     .overlayScreen {
-      position: fixed;
-      top: 0; left: 0; right: 0; bottom: 0;
+      position: fixed; top: 0; left: 0; right: 0; bottom: 0;
       display: none;
       background: rgba(255,255,255,0.95);
-      align-items: center;
-      justify-content: center;
-      flex-direction: column;
-      text-align: center;
+      align-items: center; justify-content: center;
+      flex-direction: column; text-align: center;
       z-index: 5;
     }
+    /* Overlay for no legal move */
     #noLegalMoveOverlay { font-size: 48px; color: red; }
+    /* Overlay for custom roll (testing) */
     #customRollOverlay { font-size: 20px; }
     button { font-size: 18px; margin: 10px; padding: 10px 20px; cursor: pointer; }
     input { font-size: 18px; margin: 5px; padding: 5px; width: 50px; text-align: center; }
@@ -146,12 +142,12 @@
     /* Invisible numbering:
          Bottom row (right-to‑left): points 1–12
          Top row (left-to‑right): points 13–24
-         Movement:
-         • White moves from 1 → 24 (by adding the die)
-         • Black moves from 24 → 1 (by subtracting the die)
+       Movement:
+         • White moves from point 1 → 24 (by adding the die)
+         • Black moves from point 24 → 1 (by subtracting the die)
     */
     let gameState = "menu", playerColor = null, difficulty = null,
-        // White moves from point 1 upward; Black moves from point 24 downward.
+        // White moves upward; Black moves downward.
         currentTurn = "w", selectedPoint = null, legalMoves = [],
         currentDice = [], aiThinking = false,
         borneOff = { w: 0, b: 0 },
@@ -171,15 +167,15 @@
         bar = { w: 0, b: 0 };
         // Starting positions (swapped):
         // White (moves from 1 → 24): uses traditional Black positions.
-        board[0]  = { owner: 'w', count: 2 };   // point 1
-        board[11] = { owner: 'w', count: 5 };   // point 12
-        board[16] = { owner: 'w', count: 3 };   // point 17
-        board[18] = { owner: 'w', count: 5 };   // point 19
+        board[0] = { owner: 'w', count: 2 };      // point 1
+        board[11] = { owner: 'w', count: 5 };     // point 12
+        board[16] = { owner: 'w', count: 3 };     // point 17
+        board[18] = { owner: 'w', count: 5 };     // point 19
         // Black (moves from 24 → 1): uses traditional White positions.
-        board[23] = { owner: 'b', count: 2 };   // point 24
-        board[12] = { owner: 'b', count: 5 };   // point 13
-        board[7]  = { owner: 'b', count: 3 };   // point 8
-        board[5]  = { owner: 'b', count: 5 };   // point 6
+        board[23] = { owner: 'b', count: 2 };     // point 24
+        board[12] = { owner: 'b', count: 5 };     // point 13
+        board[7] = { owner: 'b', count: 3 };      // point 8
+        board[5] = { owner: 'b', count: 5 };      // point 6
         currentTurn = "w";
         currentDice = [];
         selectedPoint = null;
@@ -275,7 +271,7 @@
         ctx.fillRect(0, 0, WIDTH, HEIGHT);
         ctx.fillStyle = "#006400";
         ctx.fillRect(boardMargin, boardTop, boardWidth, boardHeight);
-        // Top row: points 13–24 (left-to-right) → Black's territory.
+        // Top row: points 13–24 (drawn left-to-right) → Black's territory.
         for (let p = 13; p <= 24; p++) {
           let idx = p - 1;
           let x = boardMargin + (p - 13) * pointWidth;
@@ -284,7 +280,7 @@
           let color = (p % 2 === 0) ? "#deb887" : "#d2b48c";
           drawTriangle(tri.x, tri.y, tri.width, tri.height, tri.direction, color);
         }
-        // Bottom row: points 1–12 (right-to-left) → White's territory.
+        // Bottom row: points 1–12 (drawn right-to-left) → White's territory.
         for (let p = 1; p <= 12; p++) {
           let pos = 12 - p;
           let x = boardMargin + pos * pointWidth;
@@ -371,11 +367,9 @@
           let spacing = Math.min(tri.width, tri.height) / 2.2;
           for (let j = 0; j < board[i].count; j++) {
             let centerY;
-            if (i >= 12) { // Black (top row) stacks from top.
-              centerY = tri.y + (j + 0.5) * spacing;
-            } else { // White (bottom row) stacks from bottom.
-              centerY = tri.y + tri.height - (j + 0.5) * spacing;
-            }
+            // For Black (top row, indices 12-23) stack from top; White (bottom row, indices 0-11) stack from bottom.
+            if (i >= 12) { centerY = tri.y + (j + 0.5) * spacing; }
+            else { centerY = tri.y + tri.height - (j + 0.5) * spacing; }
             ctx.beginPath();
             ctx.arc(centerX, centerY, spacing * 0.8, 0, 2 * Math.PI);
             ctx.fillStyle = board[i].owner === 'w' ? "#fff" : "#000";
@@ -402,7 +396,6 @@
         legalMoves.forEach(move => {
           if (move.bearOff) {
             let x, y, rectW = 60, rectH = 60;
-            // For White: bear-off area is bottom left; for Black: top right.
             if (currentTurn === 'w') {
               x = boardMargin + 20;
               y = boardTop + boardHeight - rectH - 20;
@@ -430,14 +423,8 @@
       let inHome = true;
       for (let i = 0; i < 24; i++) {
         if (board[i] && board[i].owner === color) {
-          if (color === 'w') {
-            // White's home: points 19-24 (indices 18-23)
-            if (i < 18) inHome = false;
-          }
-          if (color === 'b') {
-            // Black's home: points 1-6 (indices 0-5)
-            if (i > 5) inHome = false;
-          }
+          if (color === 'w') { if (i < 18) inHome = false; }
+          if (color === 'b') { if (i > 5) inHome = false; }
         }
       }
       if (bar[color] > 0) inHome = false;
@@ -479,10 +466,8 @@
       for (let die of currentDice) {
         let dest;
         if (currentTurn === 'w') {
-          // White re-enters into Black's home: points 1-6 (indices 0-5)
           dest = die - 1;
         } else {
-          // Black re-enters into White's home: points 19-24 (indices 18-23)
           dest = 24 - die;
         }
         if (dest < 0 || dest > 23) continue;
@@ -561,7 +546,7 @@
             setTimeout(() => {
               makeMove(move);
               redrawGame();
-              // If there are dice left but no legal moves, clear dice and end turn.
+              // Check if any legal moves remain with leftover dice.
               if (currentDice.length > 0 && !hasLegalMoves()) {
                 currentDice = [];
                 showNoLegalMove();
@@ -595,10 +580,7 @@
                 return;
               }
             }, humanDelay);
-          } else {
-            selectedPoint = null;
-            legalMoves = [];
-          }
+          } else { selectedPoint = null; legalMoves = []; }
         }
         redrawGame();
       } catch (err) { logBug("boardCanvas mousedown", err); }
@@ -653,52 +635,47 @@
       aiThinking = true;
       let delay = getAIDelay();
       setTimeout(() => {
-        currentDice = rollDice();
-        drawDiceOnCanvas();
+        // Roll dice if needed.
+        if (currentDice.length === 0) {
+          currentDice = rollDice();
+          drawDiceOnCanvas();
+        }
         if (!hasLegalMoves()) {
           showNoLegalMove();
           return;
         }
-        function aiMakeMove() {
-          let poss = [];
-          if (bar[currentTurn] > 0) poss = getLegalMovesFromBar();
-          else {
-            for (let i = 0; i < 24; i++) {
-              if (board[i] && board[i].owner === currentTurn) {
-                let m = getLegalMoves(i);
-                if (m.length) poss = poss.concat(m);
-              }
+        let poss = [];
+        if (bar[currentTurn] > 0) {
+          poss = getLegalMovesFromBar();
+        } else {
+          for (let i = 0; i < 24; i++) {
+            if (board[i] && board[i].owner === currentTurn) {
+              let m = getLegalMoves(i);
+              if (m.length) poss = poss.concat(m);
             }
           }
-          if (poss.length) {
-            let move = poss[Math.floor(Math.random() * poss.length)];
-            selectedPoint = move.from;
-            legalMoves = [move];
-            redrawGame();
-            setTimeout(() => {
-              makeMove(move);
-              redrawGame();
-              if (currentDice.length > 0 && !hasLegalMoves()) {
-                currentDice = [];
-                showNoLegalMove();
-                return;
-              }
-              if (currentDice.length) setTimeout(aiMakeMove, delay);
-              else {
-                aiThinking = false;
-                currentTurn = (currentTurn === 'w') ? 'b' : 'w';
-                if (currentTurn === playerColor) rollDiceBtn.style.display = "block";
-                else setTimeout(aiTurn, delay);
-              }
-            }, delay);
+        }
+        if (poss.length > 0) {
+          let move = poss[Math.floor(Math.random() * poss.length)];
+          makeMove(move);
+          redrawGame();
+          if (currentDice.length > 0 && !hasLegalMoves()) {
+            currentDice = [];
+            showNoLegalMove();
+            return;
+          }
+          if (currentDice.length > 0) {
+            setTimeout(aiTurn, delay);
           } else {
             aiThinking = false;
             currentTurn = (currentTurn === 'w') ? 'b' : 'w';
             if (currentTurn === playerColor) rollDiceBtn.style.display = "block";
             else setTimeout(aiTurn, delay);
           }
+        } else {
+          currentDice = [];
+          showNoLegalMove();
         }
-        aiMakeMove();
       }, delay);
     }
 
