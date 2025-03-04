@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>Backgammon Game – Basic Movement</title>
+  <title>Advanced Backgammon Game</title>
   <style>
     body {
       background: #eee;
@@ -11,10 +11,32 @@
       font-family: sans-serif;
       text-align: center;
     }
-    h1 { margin-bottom: 20px; }
+    h1 {
+      margin-bottom: 20px;
+    }
+    #gameContainer {
+      display: flex;
+      justify-content: center;
+      align-items: flex-start;
+    }
+    #barContainer {
+      width: 150px;
+      text-align: center;
+    }
+    #boardContainer {
+      position: relative;
+      width: 720px;
+      height: 800px;
+      background: #f5f5f5;
+      margin: 0 20px;
+    }
+    #diceContainer {
+      width: 250px;
+      text-align: center;
+    }
     canvas {
-      border: 2px solid #000;
       background: #fff;
+      border: 2px solid #000;
       margin-bottom: 20px;
     }
     button {
@@ -25,45 +47,68 @@
   </style>
 </head>
 <body>
-  <h1>Backgammon Game</h1>
-  <!-- Backgammon Board Canvas -->
-  <canvas id="boardCanvas" width="720" height="800"></canvas>
-  <!-- Dice Roll Section -->
-  <h1>Roll the Dice!</h1>
-  <canvas id="diceCanvas" width="300" height="150"></canvas>
-  <button id="rollBtn">Roll Dice</button>
-  <p id="diceResult"></p>
+  <h1>Advanced Backgammon Game</h1>
+  <div id="gameContainer">
+    <!-- Bar Column -->
+    <div id="barContainer">
+      <h3>Bar</h3>
+      <canvas id="barCanvas" width="150" height="200"></canvas>
+    </div>
+    <!-- Board Column -->
+    <div id="boardContainer">
+      <canvas id="boardCanvas" width="720" height="800"></canvas>
+    </div>
+    <!-- Dice Column -->
+    <div id="diceContainer">
+      <canvas id="diceCanvas" width="250" height="150"></canvas>
+      <button id="rollBtn">Roll Dice</button>
+      <p id="diceResult"></p>
+    </div>
+  </div>
+
   <script>
-    /*****************************************************
-     * Global Constants and Variables
-     *****************************************************/
+    /***********************************
+     * Utility & Bug Logging
+     ***********************************/
+    let bugLogs = [];
+    function logBug(loc, details) {
+      const entry = { time: new Date().toISOString(), loc, details };
+      bugLogs.push(entry);
+      console.error("Bug:", entry);
+    }
+    window.onerror = (msg, src, line, col, err) => logBug("Global", { msg, src, line, col, err });
+
+    /***********************************
+     * Global Variables & Constants
+     ***********************************/
     const boardCanvas = document.getElementById("boardCanvas");
     const ctx = boardCanvas.getContext("2d");
+    const barCanvas = document.getElementById("barCanvas");
+    const barCtx = barCanvas.getContext("2d");
     const diceCanvas = document.getElementById("diceCanvas");
     const diceCtx = diceCanvas.getContext("2d");
     const rollBtn = document.getElementById("rollBtn");
     const diceResultP = document.getElementById("diceResult");
 
-    // Board dimensions and layout:
-    const WIDTH = boardCanvas.width;  // 720
+    // Board layout
+    const WIDTH = boardCanvas.width;   // 720
     const HEIGHT = boardCanvas.height; // 800
     const boardMargin = 20;
     const barWidth = 40;
-    // Reserve zones: top 150px for White's bear‑off; bottom 100px for Black's.
-    const bearOffTop = 150; 
+    // Reserve top 150px for White's bear-off zone and bottom 100px for Black's.
+    const bearOffTop = 150;
     const bearOffBottom = 100;
-    const boardTop = bearOffTop; 
+    const boardTop = bearOffTop;
     const boardHeight = HEIGHT - bearOffTop - bearOffBottom;
-    // The board area (excluding the central bar) is split into 12 points per half.
     const boardWidth = WIDTH - 2 * boardMargin - barWidth;
     const pointWidth = boardWidth / 12;
 
-    // Colors for players
+    // Colors
     const whiteColor = "#fff";
     const blackColor = "#000";
 
-    // Board state: an array of 24 points (0–11: bottom row [points 1–12], 12–23: top row [points 13–24])
-    // Standard starting positions:
+    // Board state: Array of 24 points (indices 0-11: bottom row (points 1-12), 12-23: top row (points 13-24))
+    // Standard starting positions (for standard Backgammon with white moving from 24 down to 1, black from 1 up to 24):
     // White: 2 on point 24 (index 23), 5 on point 13 (index 12), 3 on point 8 (index 7), 5 on point 6 (index 5)
     // Black: 2 on point 1 (index 0), 5 on point 12 (index 11), 3 on point 17 (index 16), 5 on point 19 (index 18)
     let board = new Array(24).fill(null);
@@ -77,195 +122,27 @@
     board[16] = { owner: 'b', count: 3 };
     board[18] = { owner: 'b', count: 5 };
 
-    // For now we won’t use the bar or borne-off areas (movement later)
+    // Bar and borne-off
     let bar = { w: 0, b: 0 };
     let borneOff = { w: 0, b: 0 };
 
-    // Variables for movement (selected piece, legal moves, current dice)
+    // Movement variables
     let selectedPoint = null;
     let legalMoves = [];
     let currentDice = [];
 
-    // Turn control: For simplicity, assume human plays white; black will be "computer"
+    // Turn control: Assume human is White; computer is Black.
     let currentTurn = "w";
 
-    // For dice animation
+    // Dice animation duration in ms
     const diceAnimationDuration = 1000;
 
-    /*****************************************************
-     * Drawing Functions (Board, Triangles, Pieces)
-     *****************************************************/
-    function drawBoard() {
-      ctx.clearRect(0, 0, WIDTH, HEIGHT);
-      
-      // Draw White Bear-Off Zone (top)
-      ctx.fillStyle = "#e0e0e0";
-      ctx.fillRect(boardMargin, 20, WIDTH - 2 * boardMargin, bearOffTop - 20);
-      ctx.strokeStyle = "blue";
-      ctx.lineWidth = 3;
-      ctx.strokeRect(boardMargin, 20, WIDTH - 2 * boardMargin, bearOffTop - 20);
-      ctx.font = "18px sans-serif";
-      ctx.fillStyle = "blue";
-      ctx.textAlign = "center";
-      ctx.fillText("White Bear Off", WIDTH / 2, 40);
-
-      // Draw Black Bear-Off Zone (bottom)
-      ctx.fillStyle = "#e0e0e0";
-      ctx.fillRect(boardMargin, boardTop + boardHeight + 20, WIDTH - 2 * boardMargin, bearOffBottom - 20);
-      ctx.strokeStyle = "blue";
-      ctx.strokeRect(boardMargin, boardTop + boardHeight + 20, WIDTH - 2 * boardMargin, bearOffBottom - 20);
-      ctx.fillStyle = "blue";
-      ctx.fillText("Black Bear Off", WIDTH / 2, boardTop + boardHeight + 40);
-
-      // Draw main board background
-      ctx.fillStyle = "#f5f5f5";
-      ctx.fillRect(0, boardTop, WIDTH, boardHeight);
-
-      // Draw board area (with a green background) for the two halves
-      // Left half (points 1–6 and 19–24)
-      ctx.fillStyle = "#006400";
-      ctx.fillRect(boardMargin, boardTop, boardWidth / 2, boardHeight);
-      // Right half (points 7–12 and 13–18)
-      ctx.fillRect(boardMargin + boardWidth / 2 + barWidth, boardTop, boardWidth / 2, boardHeight);
-
-      // Draw the central bar
-      ctx.fillStyle = "#8B4513";
-      ctx.fillRect(boardMargin + boardWidth / 2, boardTop, barWidth, boardHeight);
-
-      // Draw triangles for bottom row (points 1–12; indices 0–11) – drawn right-to-left
-      for (let p = 1; p <= 12; p++) {
-        let pos = 12 - p;
-        let x = boardMargin + pos * pointWidth;
-        let y = boardTop + boardHeight - boardHeight / 2;
-        let direction = "up";
-        let color = (p % 2 === 0) ? "#deb887" : "#d2b48c";
-        drawTriangle(x, y, pointWidth, boardHeight / 2, direction, color);
-      }
-
-      // Draw triangles for top row (points 13–24; indices 12–23) – drawn left-to-right
-      for (let p = 13; p <= 24; p++) {
-        let idx = p - 13;
-        let x = boardMargin + idx * pointWidth;
-        let y = boardTop;
-        let direction = "down";
-        let color = (p % 2 === 0) ? "#deb887" : "#d2b48c";
-        drawTriangle(x, y, pointWidth, boardHeight / 2, direction, color);
-      }
-
-      // Draw borne-off pieces (for now they remain static)
-      drawBearOffPieces();
-    }
-
-    function drawTriangle(x, y, width, height, direction, color) {
-      ctx.fillStyle = color;
-      ctx.beginPath();
-      if (direction === "up") {
-        ctx.moveTo(x, y + height);
-        ctx.lineTo(x + width / 2, y);
-        ctx.lineTo(x + width, y + height);
-      } else { // "down"
-        ctx.moveTo(x, y);
-        ctx.lineTo(x + width / 2, y + height);
-        ctx.lineTo(x + width, y);
-      }
-      ctx.closePath();
-      ctx.fill();
-      ctx.strokeStyle = "#000";
-      ctx.stroke();
-    }
-
-    // Calculate the coordinates of the triangle for a given point index
-    function getTriangleCoordinates(idx) {
-      let x, y, width = pointWidth, height;
-      if (idx >= 12 && idx <= 23) {
-        // Top row: points 13-24, drawn left-to-right.
-        let p = idx + 1;
-        x = boardMargin + (p - 13) * pointWidth;
-        y = boardTop;
-        height = boardHeight / 2;
-        return { x, y, width, height };
-      } else if (idx >= 0 && idx <= 11) {
-        // Bottom row: points 1-12, drawn right-to-left.
-        let p = idx + 1;
-        let pos = 12 - p;
-        x = boardMargin + pos * pointWidth;
-        y = boardTop + boardHeight / 2;
-        height = boardHeight / 2;
-        return { x, y, width, height };
-      }
-      return null;
-    }
-
-    // Draw borne-off pieces in the integrated zones
-    function drawBearOffPieces() {
-      const pieceRadius = 15, spacing = pieceRadius * 2.2;
-      // White borne-off pieces: drawn in top zone (along bottom edge)
-      for (let i = 0; i < borneOff.w; i++) {
-        let cx = boardMargin + 30 + i * spacing;
-        let cy = boardTop - 30;
-        drawChecker(cx, cy, pieceRadius, 'w');
-      }
-      // Black borne-off pieces: drawn in bottom zone (along top edge)
-      for (let i = 0; i < borneOff.b; i++) {
-        let cx = boardMargin + 30 + i * spacing;
-        let cy = boardTop + boardHeight + 50;
-        drawChecker(cx, cy, pieceRadius, 'b');
-      }
-    }
-
-    // Draw a single checker (circle)
-    function drawChecker(cx, cy, radius, owner) {
-      ctx.beginPath();
-      ctx.arc(cx, cy, radius, 0, 2 * Math.PI);
-      ctx.fillStyle = owner === 'w' ? whiteColor : blackColor;
-      ctx.fill();
-      ctx.strokeStyle = "#000";
-      ctx.stroke();
-    }
-
-    // Redraw the board and pieces
-    function redrawBoard() {
-      drawBoard();
-      drawPieces();
-    }
-
-    // Draw pieces on board (stacked inside triangles)
-    function drawPieces() {
-      for (let i = 0; i < 24; i++) {
-        if (!board[i]) continue;
-        let tri = getTriangleCoordinates(i);
-        let centerX = tri.x + tri.width / 2;
-        // Use a spacing based on triangle height
-        let spacing = Math.min(tri.width, tri.height) / 3;
-        for (let j = 0; j < board[i].count; j++) {
-          let centerY;
-          if (i < 12) {
-            // Bottom row: stack from bottom up
-            centerY = tri.y + tri.height - (j + 0.5) * spacing;
-          } else {
-            // Top row: stack from top down
-            centerY = tri.y + (j + 0.5) * spacing;
-          }
-          drawChecker(centerX, centerY, 15, board[i].owner);
-        }
-      }
-    }
-
-    /*****************************************************
+    /***********************************
      * Dice Functions & Animation
-     *****************************************************/
+     ***********************************/
     function rollDiceSimple() {
       return [Math.floor(Math.random() * 6) + 1, Math.floor(Math.random() * 6) + 1];
     }
-
-    function drawDice(dice) {
-      diceCtx.clearRect(0, 0, diceCanvas.width, diceCanvas.height);
-      const dieSize = 100;
-      drawDie(20, 25, dieSize, dice[0]);
-      drawDie(150, 25, dieSize, dice[1]);
-      diceResultP.textContent = `Result: ${dice[0]} and ${dice[1]}`;
-    }
-
     function drawDie(x, y, size, value) {
       diceCtx.fillStyle = "#fff";
       diceCtx.fillRect(x, y, size, size);
@@ -294,14 +171,20 @@
         diceCtx.fill();
       });
     }
-
+    function drawDice(dice) {
+      diceCtx.clearRect(0, 0, diceCanvas.width, diceCanvas.height);
+      const dieSize = 100;
+      drawDie(20, 25, dieSize, dice[0]);
+      drawDie(130, 25, dieSize, dice[1]);
+      diceResultP.textContent = `Result: ${dice[0]} & ${dice[1]}`;
+    }
     function animateDice(finalDice, duration, callback) {
       let startTime = Date.now();
       let interval = setInterval(() => {
         let elapsed = Date.now() - startTime;
         if (elapsed < duration) {
-          let randomDice = [Math.floor(Math.random() * 6) + 1, Math.floor(Math.random() * 6) + 1];
-          drawDice(randomDice);
+          let tempDice = [Math.floor(Math.random()*6)+1, Math.floor(Math.random()*6)+1];
+          drawDice(tempDice);
         } else {
           clearInterval(interval);
           drawDice(finalDice);
@@ -309,44 +192,196 @@
         }
       }, 100);
     }
-
     rollBtn.addEventListener("click", () => {
       const finalDice = rollDiceSimple();
       animateDice(finalDice, diceAnimationDuration, () => {
-        console.log("Final dice:", finalDice);
-        // Save the result for movement decisions.
         currentDice = finalDice;
+        console.log("Final dice:", finalDice);
       });
     });
 
-    /*****************************************************
-     * Movement Logic (Basic Selection & Move)
-     *****************************************************/
-    // For simplicity, this version uses very basic movement:
-    // When a user clicks on a point that has a piece (if it’s their turn), the legal moves for that point are highlighted.
-    // Then clicking on one of the highlighted destinations moves the piece.
-    // (No hit logic, no bearing-off, no re-entry from the bar are fully implemented yet.)
+    /***********************************
+     * Board Drawing Functions
+     ***********************************/
+    function drawBoard() {
+      ctx.clearRect(0, 0, WIDTH, HEIGHT);
+      // Draw White Bear-Off Zone (top)
+      ctx.fillStyle = "#e0e0e0";
+      ctx.fillRect(boardMargin, 20, WIDTH - 2 * boardMargin, bearOffTop - 20);
+      ctx.strokeStyle = "blue";
+      ctx.lineWidth = 3;
+      ctx.strokeRect(boardMargin, 20, WIDTH - 2 * boardMargin, bearOffTop - 20);
+      ctx.font = "18px sans-serif";
+      ctx.fillStyle = "blue";
+      ctx.textAlign = "center";
+      ctx.fillText("White Bear Off", WIDTH / 2, 40);
 
+      // Draw Black Bear-Off Zone (bottom)
+      ctx.fillStyle = "#e0e0e0";
+      ctx.fillRect(boardMargin, boardTop + boardHeight + 20, WIDTH - 2 * boardMargin, bearOffBottom - 20);
+      ctx.strokeStyle = "blue";
+      ctx.strokeRect(boardMargin, boardTop + boardHeight + 20, WIDTH - 2 * boardMargin, bearOffBottom - 20);
+      ctx.fillStyle = "blue";
+      ctx.fillText("Black Bear Off", WIDTH / 2, boardTop + boardHeight + 40);
+
+      // Draw main board background
+      ctx.fillStyle = "#f5f5f5";
+      ctx.fillRect(0, boardTop, WIDTH, boardHeight);
+
+      // Draw board halves (green areas)
+      ctx.fillStyle = "#006400";
+      ctx.fillRect(boardMargin, boardTop, boardWidth/2, boardHeight);
+      ctx.fillRect(boardMargin + boardWidth/2 + barWidth, boardTop, boardWidth/2, boardHeight);
+
+      // Draw central bar
+      ctx.fillStyle = "#8B4513";
+      ctx.fillRect(boardMargin + boardWidth/2, boardTop, barWidth, boardHeight);
+
+      // Draw triangles for bottom row (points 1–12, indices 0–11) – drawn right-to‑left
+      for (let p = 1; p <= 12; p++) {
+        let pos = 12 - p;
+        let x = boardMargin + pos * pointWidth;
+        let y = boardTop + boardHeight - boardHeight/2;
+        let direction = "up";
+        let color = (p % 2 === 0) ? "#deb887" : "#d2b48c";
+        drawTriangle(x, y, pointWidth, boardHeight/2, direction, color);
+      }
+
+      // Draw triangles for top row (points 13–24, indices 12–23) – drawn left-to‑right
+      for (let p = 13; p <= 24; p++) {
+        let idx = p - 13;
+        let x = boardMargin + idx * pointWidth;
+        let y = boardTop;
+        let direction = "down";
+        let color = (p % 2 === 0) ? "#deb887" : "#d2b48c";
+        drawTriangle(x, y, pointWidth, boardHeight/2, direction, color);
+      }
+      
+      // Draw borne-off pieces
+      drawBearOffPieces();
+    }
+
+    function drawTriangle(x, y, width, height, direction, color) {
+      ctx.fillStyle = color;
+      ctx.beginPath();
+      if (direction === "up") {
+        ctx.moveTo(x, y + height);
+        ctx.lineTo(x + width/2, y);
+        ctx.lineTo(x + width, y + height);
+      } else {
+        ctx.moveTo(x, y);
+        ctx.lineTo(x + width/2, y + height);
+        ctx.lineTo(x + width, y);
+      }
+      ctx.closePath();
+      ctx.fill();
+      ctx.strokeStyle = "#000";
+      ctx.stroke();
+    }
+
+    // Returns the x,y,width,height for the given point index (0–23)
+    function getTriangleCoordinates(idx) {
+      let x, y, width = pointWidth, height;
+      if (idx >= 12 && idx <= 23) {
+        let p = idx + 1;
+        x = boardMargin + (p - 13) * pointWidth;
+        y = boardTop;
+        height = boardHeight/2;
+        return { x, y, width, height };
+      } else if (idx >= 0 && idx <= 11) {
+        let p = idx + 1;
+        let pos = 12 - p;
+        x = boardMargin + pos * pointWidth;
+        y = boardTop + boardHeight/2;
+        height = boardHeight/2;
+        return { x, y, width, height };
+      }
+      return null;
+    }
+
+    // Draw borne-off pieces in integrated zones
+    function drawBearOffPieces() {
+      const pieceRadius = 15, spacing = pieceRadius * 2.2;
+      // White borne-off pieces: drawn along bottom edge of top zone
+      for (let i = 0; i < borneOff.w; i++) {
+        let cx = boardMargin + 30 + i * spacing;
+        let cy = boardTop - 30;
+        drawChecker(cx, cy, pieceRadius, 'w');
+      }
+      // Black borne-off pieces: drawn along top edge of bottom zone
+      for (let i = 0; i < borneOff.b; i++) {
+        let cx = boardMargin + 30 + i * spacing;
+        let cy = boardTop + boardHeight + 50;
+        drawChecker(cx, cy, pieceRadius, 'b');
+      }
+    }
+
+    function drawChecker(cx, cy, radius, owner) {
+      ctx.beginPath();
+      ctx.arc(cx, cy, radius, 0, 2 * Math.PI);
+      ctx.fillStyle = owner === 'w' ? whiteColor : blackColor;
+      ctx.fill();
+      ctx.strokeStyle = "#000";
+      ctx.stroke();
+    }
+
+    function drawPieces() {
+      for (let i = 0; i < 24; i++) {
+        if (!board[i]) continue;
+        let tri = getTriangleCoordinates(i);
+        let centerX = tri.x + tri.width/2;
+        let spacing = Math.min(tri.width, tri.height) / 3;
+        for (let j = 0; j < board[i].count; j++) {
+          let centerY;
+          if (i < 12) {
+            // Bottom row: stack from bottom up
+            centerY = tri.y + tri.height - (j + 0.5) * spacing;
+          } else {
+            // Top row: stack from top down
+            centerY = tri.y + (j + 0.5) * spacing;
+          }
+          drawChecker(centerX, centerY, 15, board[i].owner);
+        }
+      }
+    }
+
+    function redrawBoard() {
+      drawBoard();
+      drawPieces();
+    }
+
+    /***********************************
+     * Advanced Movement Logic
+     ***********************************/
+    // IMPORTANT: In this version, White moves from point 24 to 1 (decreasing index),
+    // and Black moves from point 1 to 24 (increasing index).
+
+    // If a player has checkers on the bar, they must move those.
+    // For re-entry:
+    // White: destination index = 24 - die (i.e. d=1 → index 23; d=6 → index 18)
+    // Black: destination index = die - 1 (i.e. d=1 → index 0; d=6 → index 5)
     function getLegalMoves(pointIndex) {
-      // Basic rule: A piece can move forward by a die value.
-      // White moves from lower-index to higher-index; Black moves from higher-index to lower-index.
       let moves = [];
       if (!board[pointIndex] || board[pointIndex].owner !== currentTurn) return moves;
       currentDice.forEach(die => {
         let dest;
         if (currentTurn === 'w') {
-          dest = pointIndex + die;
-          if (dest <= 23) {
-            // Only allow move if destination is empty or has own pieces
-            if (!board[dest] || board[dest].owner === currentTurn) {
-              moves.push({ from: pointIndex, to: dest, die });
+          dest = pointIndex - die; // White moves downward
+          // Bearing off if dest < 0 and all white checkers are in home board (indices 0-5)
+          if (dest < 0 && allCheckersInHome('w')) {
+            moves.push({ from: pointIndex, to: -1, die, bearOff: true });
+          } else if (dest >= 0) {
+            if (!board[dest] || board[dest].owner === currentTurn || (board[dest].owner !== currentTurn && board[dest].count === 1)) {
+              moves.push({ from: pointIndex, to: dest, die, hit: (board[dest] && board[dest].owner !== currentTurn && board[dest].count === 1) || false });
             }
           }
-        } else {
-          dest = pointIndex - die;
-          if (dest >= 0) {
-            if (!board[dest] || board[dest].owner === currentTurn) {
-              moves.push({ from: pointIndex, to: dest, die });
+        } else { // Black
+          dest = pointIndex + die; // Black moves upward
+          if (dest > 23 && allCheckersInHome('b')) {
+            moves.push({ from: pointIndex, to: 24, die, bearOff: true });
+          } else if (dest <= 23) {
+            if (!board[dest] || board[dest].owner === currentTurn || (board[dest].owner !== currentTurn && board[dest].count === 1)) {
+              moves.push({ from: pointIndex, to: dest, die, hit: (board[dest] && board[dest].owner !== currentTurn && board[dest].count === 1) || false });
             }
           }
         }
@@ -354,8 +389,41 @@
       return moves;
     }
 
+    // If a player has checkers on the bar, calculate legal re-entry moves.
+    function getLegalMovesFromBar() {
+      let moves = [];
+      if (bar[currentTurn] <= 0) return moves;
+      currentDice.forEach(die => {
+        let dest;
+        if (currentTurn === 'w') {
+          dest = 24 - die; // White re-enters in opponent's home (indices 18-23)
+        } else {
+          dest = die - 1;  // Black re-enters in opponent's home (indices 0-5)
+        }
+        if (dest < 0 || dest > 23) return;
+        if (!board[dest] || board[dest].owner === currentTurn || (board[dest].owner !== currentTurn && board[dest].count === 1)) {
+          moves.push({ from: "bar", to: dest, die, hit: (board[dest] && board[dest].owner !== currentTurn && board[dest].count === 1) || false });
+        }
+      });
+      return moves;
+    }
+
+    // Check if all checkers for a given color are in its home board.
+    // For White: home board is points 1–6, i.e. indices 0-5.
+    // For Black: home board is points 19–24, i.e. indices 18-23.
+    function allCheckersInHome(color) {
+      for (let i = 0; i < 24; i++) {
+        if (board[i] && board[i].owner === color) {
+          if (color === 'w' && i > 5) return false;
+          if (color === 'b' && i < 18) return false;
+        }
+      }
+      return bar[color] === 0;
+    }
+
+    // Make a move; handle hitting (send opponent's single checker to bar)
     function makeMove(move) {
-      // Remove one checker from source and add to destination.
+      // Remove checker from source (or bar)
       if (move.from === "bar") {
         bar[currentTurn]--;
       } else {
@@ -364,70 +432,70 @@
           if (board[move.from].count === 0) board[move.from] = null;
         }
       }
-      // For now, we assume destination is empty or friendly.
-      if (!board[move.to]) {
-        board[move.to] = { owner: currentTurn, count: 1 };
+      // Bearing off
+      if (move.bearOff) {
+        borneOff[currentTurn]++;
       } else {
-        board[move.to].count++;
+        // If hit, send opponent's checker to bar
+        if (move.hit) {
+          let opp = currentTurn === 'w' ? 'b' : 'w';
+          bar[opp]++;
+          board[move.to] = { owner: currentTurn, count: 1 };
+        } else {
+          if (!board[move.to]) {
+            board[move.to] = { owner: currentTurn, count: 1 };
+          } else {
+            board[move.to].count++;
+          }
+        }
       }
-      // Remove used die from currentDice
-      let dieIndex = currentDice.indexOf(move.die);
-      if (dieIndex !== -1) {
-        currentDice.splice(dieIndex, 1);
-      }
-      // Clear selection.
+      // Remove used die
+      let idx = currentDice.indexOf(move.die);
+      if (idx !== -1) currentDice.splice(idx, 1);
       selectedPoint = null;
       legalMoves = [];
     }
 
-    function highlightLegalOptions() {
-      if (selectedPoint !== null) {
-        let coords = getTriangleCoordinates(selectedPoint);
-        if (coords) {
-          ctx.fillStyle = "rgba(0,255,255,0.3)";
-          ctx.fillRect(coords.x, coords.y, coords.width, coords.height);
-        }
-        legalMoves.forEach(move => {
-          let dest = getTriangleCoordinates(move.to);
-          if (dest) {
-            ctx.fillStyle = "rgba(255,255,0,0.3)";
-            ctx.fillRect(dest.x, dest.y, dest.width, dest.height);
-          }
-        });
-      }
-    }
-
-    // Handle click events on boardCanvas
+    /***********************************
+     * Human Input Handling
+     ***********************************/
     boardCanvas.addEventListener("mousedown", (e) => {
-      // Only allow moves for human (assume human is white)
+      // Only allow human moves when it's White's turn
       if (currentTurn !== "w") return;
       const rect = boardCanvas.getBoundingClientRect();
       const mx = e.clientX - rect.left;
       const my = e.clientY - rect.top;
       let clicked = getPointFromCoordinates(mx, my);
       if (clicked === null) return;
-      // If nothing is selected, and clicked point has a piece, select it and calculate legal moves.
+      // If checkers on bar, force re-entry
+      if (bar[currentTurn] > 0) {
+        let reEntry = getLegalMovesFromBar();
+        if (!reEntry.length) return;
+        selectedPoint = "bar";
+        legalMoves = reEntry;
+        let move = reEntry.find(m => m.to === clicked);
+        if (move) {
+          makeMove(move);
+          redrawBoard();
+          return;
+        }
+        return;
+      }
+      // If nothing selected, select a point if it has a checker of currentTurn
       if (selectedPoint === null) {
         if (board[clicked] && board[clicked].owner === currentTurn) {
           selectedPoint = clicked;
           legalMoves = getLegalMoves(clicked);
         }
       } else {
-        // If clicked destination is one of the legal moves, make the move.
         let move = legalMoves.find(m => m.to === clicked);
         if (move) {
           makeMove(move);
-          // After moving, clear selection.
-          selectedPoint = null;
-          legalMoves = [];
-        } else {
-          // Deselect if clicking elsewhere.
-          selectedPoint = null;
-          legalMoves = [];
         }
+        selectedPoint = null;
+        legalMoves = [];
       }
       redrawBoard();
-      // Also redraw dice (so they remain visible)
       if (currentDice.length) drawDice(currentDice);
     });
 
@@ -447,25 +515,426 @@
       return pt - 1;
     }
 
-    /*****************************************************
-     * Main Redraw Function and Loop
-     *****************************************************/
+    /***********************************
+     * Redraw & Main Loop
+     ***********************************/
+    function redrawBoard() {
+      drawBoard();
+      drawPieces();
+    }
     function redraw() {
       redrawBoard();
       highlightLegalOptions();
     }
-    redraw(); // initial draw
+    function mainLoop() {
+      redraw();
+      requestAnimationFrame(mainLoop);
+    }
+    window.addEventListener("load", () => { mainLoop(); });
 
-    /*****************************************************
-     * Dice Roll Button and Animation
-     *****************************************************/
-    rollBtn.addEventListener("click", () => {
-      const finalDice = rollDiceSimple();
-      animateDice(finalDice, diceAnimationDuration, () => {
-        currentDice = finalDice; // set final dice values for movement decisions
-        console.log("Final dice:", finalDice);
+    /***********************************
+     * Highlight Legal Moves
+     ***********************************/
+    function highlightLegalOptions() {
+      if (selectedPoint !== null) {
+        let selCoords = getTriangleCoordinates(selectedPoint);
+        if (selCoords) {
+          ctx.fillStyle = "rgba(0,255,255,0.3)";
+          ctx.fillRect(selCoords.x, selCoords.y, selCoords.width, selCoords.height);
+        }
+        legalMoves.forEach(move => {
+          let dest = getTriangleCoordinates(move.to);
+          if (dest) {
+            ctx.fillStyle = "rgba(255,255,0,0.3)";
+            ctx.fillRect(dest.x, dest.y, dest.width, dest.height);
+          }
+        });
+      }
+    }
+
+    /***********************************
+     * AI Turn (Random Moves for Black)
+     ***********************************/
+    function aiTurn() {
+      if (currentTurn === "w") return; // Human is white
+      setTimeout(() => {
+        if (currentDice.length === 0) {
+          // Computer rolls dice automatically with animation
+          let finalDice = rollDiceSimple();
+          animateDice(finalDice, diceAnimationDuration, () => {
+            currentDice = finalDice;
+            aiTurn(); // Call again after dice are set
+          });
+          return;
+        }
+        // If bar has pieces, only legal moves from bar are allowed.
+        let moves = [];
+        if (bar[currentTurn] > 0) {
+          moves = getLegalMovesFromBar();
+        } else {
+          for (let i = 0; i < 24; i++) {
+            if (board[i] && board[i].owner === currentTurn) {
+              let legal = getLegalMoves(i);
+              if (legal.length) moves = moves.concat(legal);
+            }
+          }
+        }
+        if (moves.length === 0) {
+          // No legal moves
+          currentDice = [];
+          endTurn();
+          return;
+        }
+        let move = moves[Math.floor(Math.random() * moves.length)];
+        makeMove(move);
+        redrawBoard();
+        if (currentDice.length > 0 && !hasLegalMoves()) {
+          currentDice = [];
+          endTurn();
+        } else if (currentDice.length > 0) {
+          aiTurn();
+        } else {
+          endTurn();
+        }
+      }, getAIDelay());
+    }
+
+    function hasLegalMoves() {
+      let moves = [];
+      if (bar[currentTurn] > 0) {
+        moves = getLegalMovesFromBar();
+      } else {
+        for (let i = 0; i < 24; i++) {
+          if (board[i] && board[i].owner === currentTurn) {
+            let legal = getLegalMoves(i);
+            if (legal.length) moves = moves.concat(legal);
+          }
+        }
+      }
+      return moves.length > 0;
+    }
+
+    function endTurn() {
+      currentTurn = (currentTurn === "w") ? "b" : "w";
+      // Clear dice for next turn.
+      currentDice = [];
+      if (!checkGameOver()) {
+        if (currentTurn === "w") {
+          rollBtn.style.display = "block";
+        } else {
+          rollBtn.style.display = "none";
+          aiTurn();
+        }
+      }
+    }
+
+    function checkGameOver() {
+      if (borneOff.w >= 15) {
+        alert("Game Over: White wins!");
+        return true;
+      }
+      if (borneOff.b >= 15) {
+        alert("Game Over: Black wins!");
+        return true;
+      }
+      return false;
+    }
+
+    /***********************************
+     * Re-Entry & Advanced Rules for Moves
+     ***********************************/
+    // Re-entry moves: if a player has pieces on the bar, they must re-enter.
+    // White re-enters into opponent's home board: points 24–19 (indices 23–18)
+    // Black re-enters into opponent's home board: points 1–6 (indices 0–5)
+    // For White: destination = 24 - die; for Black: destination = die - 1.
+    // (Only if destination is open or has one opponent checker.)
+    // getLegalMovesFromBar returns legal re-entry moves.
+    function getLegalMovesFromBar() {
+      let moves = [];
+      if (bar[currentTurn] <= 0) return moves;
+      currentDice.forEach(die => {
+        let dest;
+        if (currentTurn === 'w') {
+          dest = 24 - die;  // white: d=1 → index 23; d=6 → index 18
+        } else {
+          dest = die - 1;   // black: d=1 → index 0; d=6 → index 5
+        }
+        if (dest < 0 || dest > 23) return;
+        if (!board[dest] || board[dest].owner === currentTurn || (board[dest].owner !== currentTurn && board[dest].count === 1)) {
+          moves.push({ from: "bar", to: dest, die, hit: (board[dest] && board[dest].owner !== currentTurn && board[dest].count === 1) || false });
+        }
       });
+      return moves;
+    }
+
+    /***********************************
+     * Bearing Off Rules
+     ***********************************/
+    // White's home board: points 1–6, i.e. indices 0–5.
+    // Black's home board: points 19–24, i.e. indices 18–23.
+    function allCheckersInHome(color) {
+      for (let i = 0; i < 24; i++) {
+        if (board[i] && board[i].owner === color) {
+          if (color === 'w' && i > 5) return false;
+          if (color === 'b' && i < 18) return false;
+        }
+      }
+      return (bar[color] === 0);
+    }
+
+    // Modify getLegalMoves to allow bearing off when appropriate.
+    // For white, if destination < 0 and all checkers are in home board, then bearing off is allowed.
+    // For black, if destination > 23 and all checkers are in home board, then bearing off is allowed.
+    function getLegalMoves(pointIndex) {
+      let moves = [];
+      if (!board[pointIndex] || board[pointIndex].owner !== currentTurn) return moves;
+      currentDice.forEach(die => {
+        let dest;
+        if (currentTurn === 'w') {
+          dest = pointIndex - die;
+          if (dest < 0 && allCheckersInHome('w')) {
+            moves.push({ from: pointIndex, to: -1, die, bearOff: true });
+          } else if (dest >= 0) {
+            if (!board[dest] || board[dest].owner === currentTurn || (board[dest].owner !== currentTurn && board[dest].count === 1)) {
+              moves.push({ from: pointIndex, to: dest, die, hit: (board[dest] && board[dest].owner !== currentTurn && board[dest].count === 1) || false });
+            }
+          }
+        } else {
+          dest = pointIndex + die;
+          if (dest > 23 && allCheckersInHome('b')) {
+            moves.push({ from: pointIndex, to: 24, die, bearOff: true });
+          } else if (dest <= 23) {
+            if (!board[dest] || board[dest].owner === currentTurn || (board[dest].owner !== currentTurn && board[dest].count === 1)) {
+              moves.push({ from: pointIndex, to: dest, die, hit: (board[dest] && board[dest].owner !== currentTurn && board[dest].count === 1) || false });
+            }
+          }
+        }
+      });
+      return moves;
+    }
+
+    /***********************************
+     * Main Loop & Redraw
+     ***********************************/
+    function redrawBoard() {
+      drawBoard();
+      drawPieces();
+    }
+    function redraw() {
+      redrawBoard();
+      highlightLegalOptions();
+    }
+    function mainLoop() {
+      redraw();
+      requestAnimationFrame(mainLoop);
+    }
+    window.addEventListener("load", () => { mainLoop(); });
+
+    /***********************************
+     * Bar Pieces Drawing
+     ***********************************/
+    function drawBarPieces() {
+      barCtx.clearRect(0, 0, barCanvas.width, barCanvas.height);
+      barCtx.font = "16px sans-serif";
+      barCtx.fillStyle = "#000";
+      barCtx.fillText("Bar", barCanvas.width/2, 20);
+      const pieceRadius = 15, spacing = pieceRadius * 2.2;
+      for (let j = 0; j < bar.w; j++) {
+        let cx = barCanvas.width/2, cy = 40 + j * spacing;
+        barCtx.beginPath();
+        barCtx.arc(cx, cy, pieceRadius, 0, 2 * Math.PI);
+        barCtx.fillStyle = "#fff";
+        barCtx.fill();
+        barCtx.strokeStyle = "#000";
+        barCtx.stroke();
+      }
+      for (let j = 0; j < bar.b; j++) {
+        let cx = barCanvas.width/2, cy = barCanvas.height - 40 - j * spacing;
+        barCtx.beginPath();
+        barCtx.arc(cx, cy, pieceRadius, 0, 2 * Math.PI);
+        barCtx.fillStyle = "#000";
+        barCtx.fill();
+        barCtx.strokeStyle = "#000";
+        barCtx.stroke();
+      }
+    }
+
+    /***********************************
+     * Human Input Handling
+     ***********************************/
+    boardCanvas.addEventListener("mousedown", (e) => {
+      // Only allow moves for human when it's White's turn
+      if (currentTurn !== "w") return;
+      const rect = boardCanvas.getBoundingClientRect();
+      const mx = e.clientX - rect.left;
+      const my = e.clientY - rect.top;
+      let clicked = getPointFromCoordinates(mx, my);
+      if (clicked === null) return;
+      // If pieces on bar, force re-entry
+      if (bar[currentTurn] > 0) {
+        let reEntryMoves = getLegalMovesFromBar();
+        if (!reEntryMoves.length) return;
+        selectedPoint = "bar";
+        legalMoves = reEntryMoves;
+        let move = reEntryMoves.find(m => m.to === clicked);
+        if (move) {
+          makeMove(move);
+          redrawBoard();
+          drawBarPieces();
+          return;
+        }
+        return;
+      }
+      if (selectedPoint === null) {
+        if (board[clicked] && board[clicked].owner === currentTurn) {
+          selectedPoint = clicked;
+          legalMoves = getLegalMoves(clicked);
+        }
+      } else {
+        let move = legalMoves.find(m => m.to === clicked);
+        if (move) {
+          makeMove(move);
+        }
+        selectedPoint = null;
+        legalMoves = [];
+      }
+      redrawBoard();
+      if (currentDice.length) drawDice(currentDice);
+      drawBarPieces();
     });
+
+    function getPointFromCoordinates(x, y) {
+      if (y < boardTop || y > boardTop + boardHeight) return null;
+      let pt;
+      if (y < boardTop + boardHeight/2) {
+        let pos = Math.floor((x - boardMargin) / pointWidth);
+        pt = pos + 13;
+      } else {
+        let pos = Math.floor((x - boardMargin) / pointWidth);
+        pt = 12 - pos;
+      }
+      return pt - 1;
+    }
+
+    /***********************************
+     * AI Turn (Random Moves for Black)
+     ***********************************/
+    function aiTurn() {
+      if (currentTurn === "w") return;
+      setTimeout(() => {
+        if (currentDice.length === 0) {
+          let finalDice = rollDiceSimple();
+          animateDice(finalDice, diceAnimationDuration, () => {
+            currentDice = finalDice;
+            aiTurn();
+          });
+          return;
+        }
+        let moves = [];
+        if (bar[currentTurn] > 0) {
+          moves = getLegalMovesFromBar();
+        } else {
+          for (let i = 0; i < 24; i++) {
+            if (board[i] && board[i].owner === currentTurn) {
+              let legal = getLegalMoves(i);
+              if (legal.length) moves = moves.concat(legal);
+            }
+          }
+        }
+        if (moves.length === 0) {
+          currentDice = [];
+          endTurn();
+          return;
+        }
+        let move = moves[Math.floor(Math.random() * moves.length)];
+        makeMove(move);
+        redrawBoard();
+        drawBarPieces();
+        if (currentDice.length > 0 && !hasLegalMoves()) {
+          currentDice = [];
+          endTurn();
+        } else if (currentDice.length > 0) {
+          aiTurn();
+        } else {
+          endTurn();
+        }
+      }, getAIDelay());
+    }
+
+    function hasLegalMoves() {
+      let moves = [];
+      if (bar[currentTurn] > 0) {
+        moves = getLegalMovesFromBar();
+      } else {
+        for (let i = 0; i < 24; i++) {
+          if (board[i] && board[i].owner === currentTurn) {
+            let legal = getLegalMoves(i);
+            if (legal.length) moves = moves.concat(legal);
+          }
+        }
+      }
+      return moves.length > 0;
+    }
+
+    function endTurn() {
+      currentTurn = (currentTurn === "w") ? "b" : "w";
+      currentDice = [];
+      if (!checkGameOver()) {
+        if (currentTurn === "w") {
+          rollBtn.style.display = "block";
+        } else {
+          rollBtn.style.display = "none";
+          aiTurn();
+        }
+      }
+    }
+
+    function checkGameOver() {
+      if (borneOff.w >= 15) {
+        alert("Game Over: White wins!");
+        return true;
+      }
+      if (borneOff.b >= 15) {
+        alert("Game Over: Black wins!");
+        return true;
+      }
+      return false;
+    }
+
+    /***********************************
+     * Highlight Legal Moves
+     ***********************************/
+    function highlightLegalOptions() {
+      if (selectedPoint !== null) {
+        let selCoords = getTriangleCoordinates(selectedPoint);
+        if (selCoords) {
+          ctx.fillStyle = "rgba(0,255,255,0.3)";
+          ctx.fillRect(selCoords.x, selCoords.y, selCoords.width, selCoords.height);
+        }
+        legalMoves.forEach(move => {
+          let dest = getTriangleCoordinates(move.to);
+          if (dest) {
+            ctx.fillStyle = "rgba(255,255,0,0.3)";
+            ctx.fillRect(dest.x, dest.y, dest.width, dest.height);
+          }
+        });
+      }
+    }
+
+    /***********************************
+     * Redraw & Main Loop
+     ***********************************/
+    function redraw() {
+      redrawBoard();
+      highlightLegalOptions();
+      if (currentDice.length) drawDice(currentDice);
+      drawBarPieces();
+    }
+    function mainLoop() {
+      redraw();
+      requestAnimationFrame(mainLoop);
+    }
+    window.addEventListener("load", () => { mainLoop(); });
 
   </script>
 </body>
