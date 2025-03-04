@@ -110,8 +110,8 @@
     <h2>How to Play</h2>
     <p>
       <strong>Rolling the Dice</strong> – Each player rolls two dice (animated) and moves their checkers based on the numbers rolled.<br>
-      <strong>Moving Checkers</strong> – <em>White moves upward</em> from point 1 to 24 (by adding the die) and bears off when all checkers are in the high‑numbered quadrant (points 19–24).<br>
-      &nbsp;&nbsp;&nbsp;&nbsp;– <em>Black moves downward</em> from point 24 to 1 (by subtracting the die) and bears off when all checkers are in the low‑numbered quadrant (points 1–6).<br>
+      <strong>Moving Checkers</strong> – <em>White moves upward</em> (by adding the die) from point 1 to 24 and bears off when all checkers are in the high‑numbered quadrant (points 19–24).<br>
+      &nbsp;&nbsp;&nbsp;&nbsp;– <em>Black moves downward</em> (by subtracting the die) from point 24 to 1 and bears off when all checkers are in the low‑numbered quadrant (points 1–6).<br>
       <strong>Landing on a Point</strong> – You may land on an open point or one occupied by your own checkers. Landing on a single opponent checker (a blot) sends it to the bar.<br>
       <strong>Re-entering from the Bar</strong> – If you have checkers on the bar, you must re‑enter them.<br>
       <strong>Bearing Off</strong> – You can bear off only when all your checkers are in your home board.<br>
@@ -153,16 +153,17 @@
   </div>
 
   <script>
-    /***********************************
-     * Utility & Global Variables
-     ***********************************/
+    /*==============================
+      Utility & Global Variables
+    ==============================*/
     let bugLogs = [];
     function logBug(loc, details) {
       const entry = { time: new Date().toISOString(), loc, details };
       bugLogs.push(entry);
       console.error("Bug:", entry);
     }
-    window.onerror = (msg, src, line, col, err) => logBug("Global", { msg, src, line, col, err });
+    window.onerror = (msg, src, line, col, err) =>
+      logBug("Global", { msg, src, line, col, err });
 
     // Canvas elements and contexts
     const boardCanvas = document.getElementById("boardCanvas");
@@ -191,9 +192,8 @@
     const bearOffBottom = 100;
     const boardTop = bearOffTop;
     const boardHeight = HEIGHT - bearOffTop - bearOffBottom;
-    // Define boardWidth based on canvas width, margins, and barWidth:
+    // Define boardWidth and pointWidth:
     const boardWidth = WIDTH - 2 * boardMargin - barWidth;
-    // Points are evenly divided across boardWidth:
     const pointWidth = boardWidth / 12;
 
     // Colors
@@ -231,9 +231,9 @@
     // Custom dice for testing (null means use random dice)
     let customDice = null;
 
-    /***********************************
-     * Overlay & Menu Management
-     ***********************************/
+    /*==============================
+      Overlay & Menu Management
+    ==============================*/
     function hideAllScreens() {
       menuScreen.style.display = "none";
       colorScreen.style.display = "none";
@@ -268,7 +268,7 @@
       gameOverScreen.style.display = "flex";
     }
 
-    // Overlay button bindings
+    // Button bindings
     document.getElementById("newGameBtn").onclick = () => { showColorChoice(); };
     document.getElementById("instructionsBtn").onclick = () => { showInstructions(); };
     document.getElementById("whiteSideBtn").onclick = () => {
@@ -300,9 +300,9 @@
       }
     });
 
-    /***********************************
-     * Drawing Functions
-     ***********************************/
+    /*==============================
+      Drawing Functions
+    ==============================*/
     function drawBoard() {
       ctx.clearRect(0, 0, WIDTH, HEIGHT);
       // White Bear-Off Zone (top right)
@@ -327,7 +327,7 @@
       ctx.fillStyle = "#f5f5f5";
       ctx.fillRect(0, boardTop, WIDTH, boardHeight);
       
-      // Draw board halves
+      // Board halves
       ctx.fillStyle = "#006400";
       ctx.fillRect(boardMargin, boardTop, boardWidth/2, boardHeight);
       ctx.fillRect(boardMargin + boardWidth/2 + barWidth, boardTop, boardWidth/2, boardHeight);
@@ -336,14 +336,14 @@
       ctx.fillStyle = "#8B4513";
       ctx.fillRect(boardMargin + boardWidth/2, boardTop, barWidth, boardHeight);
       
-      // Bottom row (points 1–12): drawn left-to-right
+      // Bottom row (points 1–12) – drawn left-to-right
       for (let i = 0; i < 12; i++) {
         let x = boardMargin + i * pointWidth;
         let y = boardTop + boardHeight/2;
         let color = (i % 2 === 0) ? "#deb887" : "#d2b48c";
         drawTriangle(x, y, pointWidth, boardHeight/2, "up", color);
       }
-      // Top row (points 13–24): drawn left-to-right
+      // Top row (points 13–24) – drawn left-to-right
       for (let i = 0; i < 12; i++) {
         let x = boardMargin + i * pointWidth;
         let y = boardTop;
@@ -385,6 +385,7 @@
       return null;
     }
     
+    // Map click coordinates to point index.
     function getPointFromCoordinates(x, y) {
       if (y >= boardTop + boardHeight/2 && y <= boardTop + boardHeight) {
         let pos = Math.floor((x - boardMargin) / pointWidth);
@@ -398,13 +399,13 @@
     
     function drawBearOffPieces() {
       const pieceRadius = 15, spacing = pieceRadius * 2.2;
-      // White bear off: points 19–24 (indices 18–23)
+      // White bear off: points 19–24 (indices 18–23); draw in top bear off zone (top right)
       for (let j = 0; j < borneOff.w; j++) {
         let cx = WIDTH - boardMargin - 30 - j * spacing;
         let cy = 20 + (bearOffTop - 20) / 2;
         drawChecker(cx, cy, pieceRadius, 'w');
       }
-      // Black bear off: points 1–6 (indices 0–5)
+      // Black bear off: points 1–6 (indices 0–5); draw in bottom bear off zone (bottom left)
       for (let j = 0; j < borneOff.b; j++) {
         let cx = boardMargin + 30 + j * spacing;
         let cy = boardTop + boardHeight + 20 + (bearOffBottom - 20) / 2;
@@ -425,7 +426,7 @@
       for (let i = 0; i < 24; i++) {
         if (!board[i]) continue;
         let tri = getTriangleCoordinates(i);
-        let centerX = tri.x + tri.width/2;
+        let centerX = tri.x + tri.width / 2;
         let spacing = Math.min(tri.width, tri.height) / 3;
         for (let j = 0; j < board[i].count; j++) {
           let centerY = tri.y + (j + 0.5) * spacing;
@@ -439,7 +440,7 @@
       drawPieces();
     }
     
-    // Highlight legal moves: draws red outline around selected triangle and yellow for legal destinations.
+    // Highlight selected point (red) and legal destination(s) (yellow).
     function highlightLegalOptions() {
       if (selectedPoint !== null) {
         const selCoords = getTriangleCoordinates(selectedPoint);
@@ -456,6 +457,38 @@
             ctx.strokeRect(destCoords.x, destCoords.y, destCoords.width, destCoords.height);
           }
         });
+      }
+    }
+    
+    /*------------------------------
+      drawBarPieces (single instance)
+    ------------------------------*/
+    function drawBarPieces() {
+      barCtx.clearRect(0, 0, barCanvas.width, barCanvas.height);
+      barCtx.font = "16px sans-serif";
+      barCtx.fillStyle = "#000";
+      barCtx.textAlign = "center";
+      barCtx.fillText("Bar", barCanvas.width / 2, 20);
+      const pieceRadius = 15, spacing = pieceRadius * 2.2;
+      // Draw white pieces on the bar.
+      for (let j = 0; j < bar.w; j++) {
+        let cx = barCanvas.width / 2, cy = 40 + j * spacing;
+        barCtx.beginPath();
+        barCtx.arc(cx, cy, pieceRadius, 0, 2 * Math.PI);
+        barCtx.fillStyle = "#fff";
+        barCtx.fill();
+        barCtx.strokeStyle = "#000";
+        barCtx.stroke();
+      }
+      // Draw black pieces on the bar.
+      for (let j = 0; j < bar.b; j++) {
+        let cx = barCanvas.width / 2, cy = barCanvas.height - 40 - j * spacing;
+        barCtx.beginPath();
+        barCtx.arc(cx, cy, pieceRadius, 0, 2 * Math.PI);
+        barCtx.fillStyle = "#000";
+        barCtx.fill();
+        barCtx.strokeStyle = "#000";
+        barCtx.stroke();
       }
     }
     
@@ -494,7 +527,7 @@
             { x: x + size * 0.25, y: y + size * 0.5 }, { x: x + size * 0.75, y: y + size * 0.5 },
             { x: x + size * 0.25, y: y + size * 0.75 }, { x: x + size * 0.75, y: y + size * 0.75 }]
       };
-      Object.values(dots[value]).forEach(dot => {
+      dots[value].forEach(dot => {
         diceCtx.beginPath();
         diceCtx.arc(dot.x, dot.y, dotRadius, 0, 2 * Math.PI);
         diceCtx.fill();
@@ -529,9 +562,9 @@
       return [Math.floor(Math.random() * 6) + 1, Math.floor(Math.random() * 6) + 1];
     }
     
-    /***********************************
-     * Move & AI Functions
-     ***********************************/
+    /*==============================
+      Move & AI Functions
+    ==============================*/
     function getLegalMoves(pointIndex) {
       let moves = [];
       if (!board[pointIndex] || board[pointIndex].owner !== currentTurn) return moves;
@@ -576,7 +609,7 @@
       return moves;
     }
     
-    // Home board: white is points 19–24 (indices 18–23); black is points 1–6 (indices 0–5)
+    // Check if all checkers of a color are in the home board.
     function allCheckersInHome(color) {
       for (let i = 0; i < 24; i++) {
         if (board[i] && board[i].owner === color) {
@@ -706,9 +739,9 @@
       return false;
     }
     
-    /***********************************
-     * Human Input Handling
-     ***********************************/
+    /*==============================
+      Human Input Handling
+    ==============================*/
     boardCanvas.addEventListener("mousedown", (e) => {
       if (currentTurn !== playerColor) return;
       const rect = boardCanvas.getBoundingClientRect();
@@ -716,7 +749,6 @@
       const my = e.clientY - rect.top;
       let clicked = getPointFromCoordinates(mx, my);
       if (clicked === null) return;
-      // If checkers are on the bar, force re-entry.
       if (bar[currentTurn] > 0) {
         let reEntryMoves = getLegalMovesFromBar();
         if (!reEntryMoves.length) return;
@@ -754,13 +786,13 @@
       drawBarPieces();
     });
     
-    /***********************************
-     * Custom Dice Controls
-     ***********************************/
+    /*==============================
+      Custom Dice Controls
+    ==============================*/
     document.getElementById("setCustomDiceBtn").onclick = () => {
       const die1 = parseInt(document.getElementById("customDie1").value);
       const die2 = parseInt(document.getElementById("customDie2").value);
-      if(isNaN(die1) || isNaN(die2) || die1 < 1 || die1 > 6 || die2 < 1 || die2 > 6) {
+      if (isNaN(die1) || isNaN(die2) || die1 < 1 || die1 > 6 || die2 < 1 || die2 > 6) {
         alert("Please enter valid dice values (1–6).");
         return;
       }
@@ -774,9 +806,9 @@
       console.log("Custom dice cleared");
     };
     
-    /***********************************
-     * Redraw & Main Loop
-     ***********************************/
+    /*==============================
+      Redraw & Main Loop
+    ==============================*/
     function redraw() {
       redrawBoard();
       highlightLegalOptions();
