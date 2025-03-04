@@ -191,7 +191,10 @@
     const bearOffBottom = 100;
     const boardTop = bearOffTop;
     const boardHeight = HEIGHT - bearOffTop - bearOffBottom;
-    const pointWidth = (WIDTH - 2 * boardMargin - barWidth) / 12;
+    // Define boardWidth based on canvas width, margins and barWidth:
+    const boardWidth = WIDTH - 2 * boardMargin - barWidth;
+    // Points are evenly divided across boardWidth:
+    const pointWidth = boardWidth / 12;
 
     // Colors
     const whiteColor = "#fff";
@@ -324,12 +327,12 @@
       ctx.fillStyle = "#f5f5f5";
       ctx.fillRect(0, boardTop, WIDTH, boardHeight);
       
-      // Draw board halves
-      // Left half of board (points 1–6 & 13–18)
+      // Draw board halves using boardWidth.
+      // Left half of board:
       ctx.fillStyle = "#006400";
-      ctx.fillRect(boardMargin, boardTop, (boardWidth/2), boardHeight);
-      // Right half of board (points 7–12 & 19–24)
-      ctx.fillRect(boardMargin + boardWidth/2 + barWidth, boardTop, (boardWidth/2), boardHeight);
+      ctx.fillRect(boardMargin, boardTop, boardWidth/2, boardHeight);
+      // Right half of board:
+      ctx.fillRect(boardMargin + boardWidth/2 + barWidth, boardTop, boardWidth/2, boardHeight);
       
       // Central bar
       ctx.fillStyle = "#8B4513";
@@ -352,19 +355,17 @@
       drawBearOffPieces();
     }
     
-    // For the new linear numbering:
-    // Bottom row (indices 0-11) represent points 1–12 (drawn left-to-right)
-    // Top row (indices 12-23) represent points 13–24 (drawn left-to-right)
+    // For our new numbering:
+    // Bottom row (indices 0-11) represent points 1–12
+    // Top row (indices 12-23) represent points 13–24
     function drawTriangle(x, y, width, height, direction, color) {
       ctx.fillStyle = color;
       ctx.beginPath();
       if (direction === "up") {
-        // For bottom row, triangles point upward.
         ctx.moveTo(x, y + height);
         ctx.lineTo(x + width/2, y);
         ctx.lineTo(x + width, y + height);
       } else {
-        // For top row, triangles point downward.
         ctx.moveTo(x, y);
         ctx.lineTo(x + width/2, y + height);
         ctx.lineTo(x + width, y);
@@ -375,9 +376,6 @@
       ctx.stroke();
     }
     
-    // New mapping: 
-    // For indices 0–11 (bottom row), x = boardMargin + index*pointWidth, y = boardTop+boardHeight/2
-    // For indices 12–23 (top row), x = boardMargin + (index-12)*pointWidth, y = boardTop
     function getTriangleCoordinates(idx) {
       let x, y, width = pointWidth, height = boardHeight/2;
       if (idx >= 0 && idx <= 11) {
@@ -392,37 +390,32 @@
       return null;
     }
     
-    // New getPointFromCoordinates:
-    // If clicking in the bottom half, return an index 0–11; if in top half, return 12–23.
+    // New mapping: bottom half returns indices 0–11, top half returns 12–23.
     function getPointFromCoordinates(x, y) {
       if (y >= boardTop + boardHeight/2 && y <= boardTop + boardHeight) {
         let pos = Math.floor((x - boardMargin) / pointWidth);
-        return pos; // indices 0–11 (points 1–12)
+        return pos;
       } else if (y >= boardTop && y < boardTop + boardHeight/2) {
         let pos = Math.floor((x - boardMargin) / pointWidth);
-        return pos + 12; // indices 12–23 (points 13–24)
+        return pos + 12;
       }
       return null;
     }
     
     function drawBearOffPieces() {
       const pieceRadius = 15, spacing = pieceRadius * 2.2;
-      // White’s home board: points 19–24 (indices 18–23) → drawn near top right of the board.
-      for (let i = 18; i < 24; i++) {
-        for (let j = 0; j < (borneOff.w || 0); j++) {
-          // For simplicity, draw them in a row from the right edge of the top bear off zone.
-          let cx = WIDTH - boardMargin - 30 - j * spacing;
-          let cy = 20 + (bearOffTop - 20) / 2;
-          drawChecker(cx, cy, pieceRadius, 'w');
-        }
+      // White bears off from points 19–24 (indices 18–23) → drawn in top bear off zone.
+      // For simplicity, draw white bear off pieces at top right.
+      for (let j = 0; j < borneOff.w; j++) {
+        let cx = WIDTH - boardMargin - 30 - j * spacing;
+        let cy = 20 + (bearOffTop - 20) / 2;
+        drawChecker(cx, cy, pieceRadius, 'w');
       }
-      // Black’s home board: points 1–6 (indices 0–5) → drawn near bottom left.
-      for (let i = 0; i < 6; i++) {
-        for (let j = 0; j < (borneOff.b || 0); j++) {
-          let cx = boardMargin + 30 + j * spacing;
-          let cy = boardTop + boardHeight + 20 + (bearOffBottom - 20) / 2;
-          drawChecker(cx, cy, pieceRadius, 'b');
-        }
+      // Black bears off from points 1–6 (indices 0–5) → drawn in bottom bear off zone.
+      for (let j = 0; j < borneOff.b; j++) {
+        let cx = boardMargin + 30 + j * spacing;
+        let cy = boardTop + boardHeight + 20 + (bearOffBottom - 20) / 2;
+        drawChecker(cx, cy, pieceRadius, 'b');
       }
     }
     
@@ -442,9 +435,7 @@
         let centerX = tri.x + tri.width/2;
         let spacing = Math.min(tri.width, tri.height) / 3;
         for (let j = 0; j < board[i].count; j++) {
-          let centerY = (i < 12) ? 
-              tri.y + (j + 0.5) * spacing :  // bottom row: left-to-right order
-              tri.y + (j + 0.5) * spacing;     // top row: left-to-right order
+          let centerY = tri.y + (j + 0.5) * spacing;
           drawChecker(centerX, centerY, 15, board[i].owner);
         }
       }
@@ -574,7 +565,6 @@
     /***********************************
      * Move & AI Functions
      ***********************************/
-    // For movement: white moves upward (i.e. to higher indices) and black moves downward.
     function getLegalMoves(pointIndex) {
       let moves = [];
       if (!board[pointIndex] || board[pointIndex].owner !== currentTurn) return moves;
@@ -661,7 +651,7 @@
     }
     
     function aiTurn() {
-      if (currentTurn === playerColor) return; // Wait for human
+      if (currentTurn === playerColor) return;
       setTimeout(() => {
         if (currentDice.length === 0) {
           let finalDice = rollDiceSimple();
