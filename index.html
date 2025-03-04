@@ -18,7 +18,7 @@
       max-width: 100px;
       z-index: 2000;
     }
-    /* Overlays (Menus, Instructions, etc.) */
+    /* Overlays */
     .overlayScreen {
       position: fixed;
       top: 0; left: 0; right: 0; bottom: 0;
@@ -105,7 +105,7 @@
       <strong>Re-entering from the Bar</strong> – If you have checkers on the bar, you must re‑enter them:<br>
       &nbsp;&nbsp;&nbsp;&nbsp;– White re‑enters into points 1–6 (indices 0–5).<br>
       &nbsp;&nbsp;&nbsp;&nbsp;– Black re‑enters into points 19–24 (indices 18–23).<br>
-      <strong>Bearing Off</strong> – You can bear off only when all your checkers are in your home board.<br>
+      <strong>Bearing Off</strong> – You can bear off only when all your checkers are in your home board:<br>
       &nbsp;&nbsp;&nbsp;&nbsp;– White’s home board: points 19–24 (indices 18–23).<br>
       &nbsp;&nbsp;&nbsp;&nbsp;– Black’s home board: points 1–6 (indices 0–5).<br>
       <strong>Winning</strong> – The first player to bear off all their checkers wins.<br>
@@ -148,8 +148,7 @@
       bugLogs.push(entry);
       console.error("Bug:", entry);
     }
-    window.onerror = (msg, src, line, col, err) =>
-      logBug("Global", { msg, src, line, col, err });
+    window.onerror = (msg, src, line, col, err) => logBug("Global", { msg, src, line, col, err });
 
     /***********************************
      * Global Variables & Constants
@@ -187,17 +186,16 @@
     const whiteColor = "#fff";
     const blackColor = "#000";
 
-    // --- New configuration ---
-    // White’s starting pieces on points: 1, 12, 17, and 19 (indices 0, 11, 16, 18)
-    // Black’s starting pieces on points: 24, 13, 8, and 6 (indices 23, 12, 7, 5)
-    // White moves upward (by adding the die) so its home board is points 19–24 (indices 18–23).
-    // Black moves downward (by subtracting the die) so its home board is points 1–6 (indices 0–5).
+    // --- New Configuration ---
+    // White’s starting pieces on points 1, 12, 17, and 19 (indices 0, 11, 16, 18)
+    // Black’s starting pieces on points 24, 13, 8, and 6 (indices 23, 12, 7, 5)
+    // White moves upward (by adding the die) so its home board is points 19–24 (indices 18–23)
+    // Black moves downward (by subtracting the die) so its home board is points 1–6 (indices 0–5)
     let board = new Array(24).fill(null);
     board[0]  = { owner: 'w', count: 2 };
     board[11] = { owner: 'w', count: 5 };
     board[16] = { owner: 'w', count: 3 };
     board[18] = { owner: 'w', count: 5 };
-    
     board[23] = { owner: 'b', count: 2 };
     board[12] = { owner: 'b', count: 5 };
     board[7]  = { owner: 'b', count: 3 };
@@ -213,7 +211,7 @@
     let currentDice = [];
 
     // Turn control – human chooses color.
-    let currentTurn = "w"; // Will be set via overlay
+    let currentTurn = "w"; // Set via overlay
     let playerColor = "w"; // default
 
     // Dice animation duration (ms)
@@ -277,7 +275,6 @@
     document.getElementById("mediumBtn").onclick = () => { difficulty = "medium"; startGame(); };
     document.getElementById("hardBtn").onclick = () => { difficulty = "hard"; startGame(); };
     document.getElementById("gameOverNewGameBtn").onclick = () => { showColorChoice(); };
-
     document.addEventListener("keydown", (e) => {
       const key = e.key.toLowerCase();
       if (colorScreen.style.display === "flex") {
@@ -291,13 +288,13 @@
         if (key === "m") showMenu();
       }
     });
-    
+
     /***********************************
      * Board Drawing Functions
      ***********************************/
     function drawBoard() {
       ctx.clearRect(0, 0, WIDTH, HEIGHT);
-      // Draw White Bear-Off Zone (top)
+      // White Bear-Off Zone (top)
       ctx.fillStyle = "#e0e0e0";
       ctx.fillRect(boardMargin, 20, WIDTH - 2 * boardMargin, bearOffTop - 20);
       ctx.strokeStyle = "blue";
@@ -308,7 +305,7 @@
       ctx.textAlign = "center";
       ctx.fillText("White Bear Off", WIDTH / 2, 40);
       
-      // Draw Black Bear-Off Zone (bottom)
+      // Black Bear-Off Zone (bottom)
       ctx.fillStyle = "#e0e0e0";
       ctx.fillRect(boardMargin, boardTop + boardHeight + 20, WIDTH - 2 * boardMargin, bearOffBottom - 20);
       ctx.strokeStyle = "blue";
@@ -316,20 +313,20 @@
       ctx.fillStyle = "blue";
       ctx.fillText("Black Bear Off", WIDTH / 2, boardTop + boardHeight + 40);
       
-      // Draw main board background
+      // Main board background
       ctx.fillStyle = "#f5f5f5";
       ctx.fillRect(0, boardTop, WIDTH, boardHeight);
       
-      // Draw board halves (green)
+      // Board halves (green)
       ctx.fillStyle = "#006400";
       ctx.fillRect(boardMargin, boardTop, boardWidth/2, boardHeight);
       ctx.fillRect(boardMargin + boardWidth/2 + barWidth, boardTop, boardWidth/2, boardHeight);
       
-      // Draw central bar
+      // Central bar
       ctx.fillStyle = "#8B4513";
       ctx.fillRect(boardMargin + boardWidth/2, boardTop, barWidth, boardHeight);
       
-      // Draw triangles for bottom row (points 1–12) – drawn right-to‑left
+      // Triangles for bottom row (points 1–12) – drawn right-to‑left
       for (let p = 1; p <= 12; p++) {
         let pos = 12 - p;
         let x = boardMargin + pos * pointWidth;
@@ -338,7 +335,7 @@
         let color = (p % 2 === 0) ? "#deb887" : "#d2b48c";
         drawTriangle(x, y, pointWidth, boardHeight/2, direction, color);
       }
-      // Draw triangles for top row (points 13–24) – drawn left-to‑right
+      // Triangles for top row (points 13–24) – drawn left-to‑right
       for (let p = 13; p <= 24; p++) {
         let idx = p - 13;
         let x = boardMargin + idx * pointWidth;
@@ -368,12 +365,6 @@
       ctx.stroke();
     }
     
-    // In our board array:
-    // Indices 0–11: bottom row (points 1–12, drawn right-to‑left)
-    // Indices 12–23: top row (points 13–24, drawn left-to‑right)
-    // For our new configuration:
-    // White’s starting pieces are on indices 0, 11, 16, 18.
-    // Black’s starting pieces are on indices 23, 12, 7, 5.
     function getTriangleCoordinates(idx) {
       let x, y, width = pointWidth, height;
       if (idx >= 12 && idx <= 23) {
@@ -395,16 +386,16 @@
     
     function drawBearOffPieces() {
       const pieceRadius = 15, spacing = pieceRadius * 2.2;
-      // White’s home board: points 19–24 (indices 18–23). Draw white borne-off pieces along the bottom edge of the top half.
+      // White’s home board: points 19–24 (indices 18–23); draw white borne-off pieces along the bottom edge of the top half.
       for (let i = 0; i < borneOff.w; i++) {
         let cx = boardMargin + 30 + i * spacing;
-        let cy = boardTop + boardHeight/2 - 30; // adjust as desired
+        let cy = boardTop + boardHeight/2 - 30;
         drawChecker(cx, cy, pieceRadius, 'w');
       }
-      // Black’s home board: points 1–6 (indices 0–5). Draw black borne-off pieces along the top edge of the bottom half.
+      // Black’s home board: points 1–6 (indices 0–5); draw black borne-off pieces along the top edge of the bottom half.
       for (let i = 0; i < borneOff.b; i++) {
         let cx = boardMargin + 30 + i * spacing;
-        let cy = boardTop + boardHeight/2 + 50; // adjust as desired
+        let cy = boardTop + boardHeight/2 + 50;
         drawChecker(cx, cy, pieceRadius, 'b');
       }
     }
@@ -445,11 +436,9 @@
      * Dice Functions & Animation
      ***********************************/
     function rollDiceSimple() {
-      // Ensure numeric values are returned.
       return [Math.floor(Math.random() * 6) + 1, Math.floor(Math.random() * 6) + 1];
     }
     function drawDie(x, y, size, value) {
-      // Ensure value is numeric and between 1 and 6.
       value = Number(value);
       if (value < 1 || value > 6) {
         console.error("Invalid die value:", value);
@@ -463,7 +452,6 @@
       const dotRadius = size / 10;
       const cx = x + size / 2;
       const cy = y + size / 2;
-      // Define dot positions for valid die values 1-6.
       const dots = {
         1: [{ x: cx, y: cy }],
         2: [{ x: x + size * 0.25, y: y + size * 0.25 }, { x: x + size * 0.75, y: y + size * 0.75 }],
@@ -505,10 +493,13 @@
       }, 100);
     }
     rollBtn.addEventListener("click", () => {
+      // Lock the dice button immediately.
+      rollBtn.disabled = true;
       const finalDice = rollDiceSimple();
       animateDice(finalDice, diceAnimationDuration, () => {
         currentDice = finalDice;
         console.log("Final dice:", finalDice);
+        // Do not re-enable here; re-enable only at end of turn.
       });
     });
     
@@ -623,7 +614,232 @@
     }
     
     /***********************************
-     * Highlight Legal Moves (Improved)
+     * Highlight Legal Moves
+     ***********************************/
+    function highlightLegalOptions() {
+      if (selectedPoint !== null) {
+        let selCoords = getTriangleCoordinates(selectedPoint);
+        if (selCoords) {
+          ctx.strokeStyle = "red";
+          ctx.lineWidth = 4;
+          ctx.strokeRect(selCoords.x, selCoords.y, selCoords.width, selCoords.height);
+        }
+        legalMoves.forEach(move => {
+          let dest = getTriangleCoordinates(move.to);
+          if (dest) {
+            ctx.strokeStyle = "yellow";
+            ctx.lineWidth = 4;
+            ctx.strokeRect(dest.x, dest.y, dest.width, dest.height);
+          }
+        });
+      }
+    }
+    
+    /***********************************
+     * AI Turn (Random Moves for Black)
+     ***********************************/
+    function aiTurn() {
+      if (currentTurn === "w") return; // Human is White
+      setTimeout(() => {
+        if (currentDice.length === 0) {
+          let finalDice = rollDiceSimple();
+          animateDice(finalDice, diceAnimationDuration, () => {
+            currentDice = finalDice;
+            aiTurn();
+          });
+          return;
+        }
+        let moves = [];
+        if (bar[currentTurn] > 0) {
+          moves = getLegalMovesFromBar();
+        } else {
+          for (let i = 0; i < 24; i++) {
+            if (board[i] && board[i].owner === currentTurn) {
+              let legal = getLegalMoves(i);
+              if (legal.length) moves = moves.concat(legal);
+            }
+          }
+        }
+        if (moves.length === 0) {
+          currentDice = [];
+          endTurn();
+          return;
+        }
+        let move = moves[Math.floor(Math.random() * moves.length)];
+        makeMove(move);
+        redrawBoard();
+        drawBarPieces();
+        if (currentDice.length > 0 && !hasLegalMoves()) {
+          currentDice = [];
+          endTurn();
+        } else if (currentDice.length > 0) {
+          aiTurn();
+        } else {
+          endTurn();
+        }
+      }, getAIDelay());
+    }
+    
+    function hasLegalMoves() {
+      let moves = [];
+      if (bar[currentTurn] > 0) {
+        moves = getLegalMovesFromBar();
+      } else {
+        for (let i = 0; i < 24; i++) {
+          if (board[i] && board[i].owner === currentTurn) {
+            let legal = getLegalMoves(i);
+            if (legal.length) moves = moves.concat(legal);
+          }
+        }
+      }
+      return moves.length > 0;
+    }
+    
+    function getAIDelay() {
+      if (difficulty === "hard") return 1000;
+      if (difficulty === "medium") return 1500;
+      return 2000;
+    }
+    
+    function endTurn() {
+      currentTurn = (currentTurn === "w") ? "b" : "w";
+      currentDice = [];
+      // Re-enable roll button if it's now the human's turn.
+      if (!checkGameOver()) {
+        if (currentTurn === playerColor) {
+          rollBtn.style.display = "block";
+          rollBtn.disabled = false;
+        } else {
+          rollBtn.style.display = "none";
+          aiTurn();
+        }
+      }
+    }
+    
+    function checkGameOver() {
+      if (borneOff.w >= 15) {
+        showGameOver("Game Over: White wins!");
+        return true;
+      }
+      if (borneOff.b >= 15) {
+        showGameOver("Game Over: Black wins!");
+        return true;
+      }
+      return false;
+    }
+    
+    /***********************************
+     * Redraw & Main Loop
+     ***********************************/
+    function redrawBoard() {
+      drawBoard();
+      drawPieces();
+    }
+    function redraw() {
+      redrawBoard();
+      highlightLegalOptions();
+      if (currentDice.length) drawDice(currentDice);
+      drawBarPieces();
+    }
+    function mainLoop() {
+      redraw();
+      requestAnimationFrame(mainLoop);
+    }
+    window.addEventListener("load", () => { mainLoop(); });
+    
+    /***********************************
+     * Bar Pieces Drawing
+     ***********************************/
+    function drawBarPieces() {
+      barCtx.clearRect(0, 0, barCanvas.width, barCanvas.height);
+      barCtx.font = "16px sans-serif";
+      barCtx.fillStyle = "#000";
+      barCtx.fillText("Bar", barCanvas.width/2, 20);
+      const pieceRadius = 15, spacing = pieceRadius * 2.2;
+      for (let j = 0; j < bar.w; j++) {
+        let cx = barCanvas.width/2, cy = 40 + j * spacing;
+        barCtx.beginPath();
+        barCtx.arc(cx, cy, pieceRadius, 0, 2*Math.PI);
+        barCtx.fillStyle = "#fff";
+        barCtx.fill();
+        barCtx.strokeStyle = "#000";
+        barCtx.stroke();
+      }
+      for (let j = 0; j < bar.b; j++) {
+        let cx = barCanvas.width/2, cy = barCanvas.height - 40 - j * spacing;
+        barCtx.beginPath();
+        barCtx.arc(cx, cy, pieceRadius, 0, 2*Math.PI);
+        barCtx.fillStyle = "#000";
+        barCtx.fill();
+        barCtx.strokeStyle = "#000";
+        barCtx.stroke();
+      }
+    }
+    
+    /***********************************
+     * Human Input Handling
+     ***********************************/
+    boardCanvas.addEventListener("mousedown", (e) => {
+      if (currentTurn !== "w") return; // Human is White
+      const rect = boardCanvas.getBoundingClientRect();
+      const mx = e.clientX - rect.left;
+      const my = e.clientY - rect.top;
+      let clicked = getPointFromCoordinates(mx, my);
+      if (clicked === null) return;
+      // If checkers on bar, force re-entry
+      if (bar[currentTurn] > 0) {
+        let reEntryMoves = getLegalMovesFromBar();
+        if (!reEntryMoves.length) return;
+        selectedPoint = "bar";
+        legalMoves = reEntryMoves;
+        let move = reEntryMoves.find(m => m.to === clicked);
+        if (move) {
+          makeMove(move);
+          redrawBoard();
+          drawBarPieces();
+          return;
+        }
+        return;
+      }
+      if (selectedPoint === null) {
+        if (board[clicked] && board[clicked].owner === currentTurn) {
+          selectedPoint = clicked;
+          legalMoves = getLegalMoves(clicked);
+        }
+      } else {
+        // If clicking on another own piece, reselect it.
+        if (board[clicked] && board[clicked].owner === currentTurn && clicked !== selectedPoint) {
+          selectedPoint = clicked;
+          legalMoves = getLegalMoves(clicked);
+        } else {
+          let move = legalMoves.find(m => m.to === clicked);
+          if (move) {
+            makeMove(move);
+          }
+          selectedPoint = null;
+          legalMoves = [];
+        }
+      }
+      redrawBoard();
+      if (currentDice.length) drawDice(currentDice);
+      drawBarPieces();
+    });
+    
+    function getPointFromCoordinates(x, y) {
+      if (y < boardTop || y > boardTop + boardHeight) return null;
+      let pt;
+      if (y < boardTop + boardHeight/2) {
+        let pos = Math.floor((x - boardMargin) / pointWidth);
+        pt = pos + 13;
+      } else {
+        let pos = Math.floor((x - boardMargin) / pointWidth);
+        pt = 12 - pos;
+      }
+      return pt - 1;
+    }
+    
+    /***********************************
+     * Highlight Legal Moves
      ***********************************/
     function highlightLegalOptions() {
       if (selectedPoint !== null) {
@@ -714,8 +930,9 @@
       currentTurn = (currentTurn === "w") ? "b" : "w";
       currentDice = [];
       if (!checkGameOver()) {
-        if (currentTurn === "w") {
+        if (currentTurn === playerColor) {
           rollBtn.style.display = "block";
+          rollBtn.disabled = false;
         } else {
           rollBtn.style.display = "none";
           aiTurn();
@@ -736,7 +953,7 @@
     }
     
     /***********************************
-     * Redraw & Main Loop Setup
+     * Redraw & Main Loop
      ***********************************/
     function redrawBoard() {
       drawBoard();
@@ -764,7 +981,7 @@
       barCtx.fillText("Bar", barCanvas.width/2, 20);
       const pieceRadius = 15, spacing = pieceRadius * 2.2;
       for (let j = 0; j < bar.w; j++) {
-        let cx = barCanvas.width/2, cy = 40+j*spacing;
+        let cx = barCanvas.width/2, cy = 40 + j * spacing;
         barCtx.beginPath();
         barCtx.arc(cx, cy, pieceRadius, 0, 2*Math.PI);
         barCtx.fillStyle = "#fff";
@@ -773,7 +990,7 @@
         barCtx.stroke();
       }
       for (let j = 0; j < bar.b; j++) {
-        let cx = barCanvas.width/2, cy = barCanvas.height-40-j*spacing;
+        let cx = barCanvas.width/2, cy = barCanvas.height - 40 - j * spacing;
         barCtx.beginPath();
         barCtx.arc(cx, cy, pieceRadius, 0, 2*Math.PI);
         barCtx.fillStyle = "#000";
@@ -784,13 +1001,1037 @@
     }
     
     /***********************************
-     * Dice Roll & Animation Setup
+     * Human Input Handling
+     ***********************************/
+    boardCanvas.addEventListener("mousedown", (e) => {
+      if (currentTurn !== "w") return; // Human is White
+      const rect = boardCanvas.getBoundingClientRect();
+      const mx = e.clientX - rect.left;
+      const my = e.clientY - rect.top;
+      let clicked = getPointFromCoordinates(mx, my);
+      if (clicked === null) return;
+      // If checkers on bar, force re-entry.
+      if (bar[currentTurn] > 0) {
+        let reEntryMoves = getLegalMovesFromBar();
+        if (!reEntryMoves.length) return;
+        selectedPoint = "bar";
+        legalMoves = reEntryMoves;
+        let move = reEntryMoves.find(m => m.to === clicked);
+        if (move) {
+          makeMove(move);
+          redrawBoard();
+          drawBarPieces();
+          return;
+        }
+        return;
+      }
+      if (selectedPoint === null) {
+        if (board[clicked] && board[clicked].owner === currentTurn) {
+          selectedPoint = clicked;
+          legalMoves = getLegalMoves(clicked);
+        }
+      } else {
+        if (board[clicked] && board[clicked].owner === currentTurn && clicked !== selectedPoint) {
+          selectedPoint = clicked;
+          legalMoves = getLegalMoves(clicked);
+        } else {
+          let move = legalMoves.find(m => m.to === clicked);
+          if (move) {
+            makeMove(move);
+          }
+          selectedPoint = null;
+          legalMoves = [];
+        }
+      }
+      redrawBoard();
+      if (currentDice.length) drawDice(currentDice);
+      drawBarPieces();
+    });
+    
+    function getPointFromCoordinates(x, y) {
+      if (y < boardTop || y > boardTop + boardHeight) return null;
+      let pt;
+      if (y < boardTop + boardHeight/2) {
+        let pos = Math.floor((x - boardMargin) / pointWidth);
+        pt = pos + 13;
+      } else {
+        let pos = Math.floor((x - boardMargin) / pointWidth);
+        pt = 12 - pos;
+      }
+      return pt - 1;
+    }
+    
+    /***********************************
+     * Highlight Legal Moves
+     ***********************************/
+    function highlightLegalOptions() {
+      if (selectedPoint !== null) {
+        let selCoords = getTriangleCoordinates(selectedPoint);
+        if (selCoords) {
+          ctx.strokeStyle = "red";
+          ctx.lineWidth = 4;
+          ctx.strokeRect(selCoords.x, selCoords.y, selCoords.width, selCoords.height);
+        }
+        legalMoves.forEach(move => {
+          let dest = getTriangleCoordinates(move.to);
+          if (dest) {
+            ctx.strokeStyle = "yellow";
+            ctx.lineWidth = 4;
+            ctx.strokeRect(dest.x, dest.y, dest.width, dest.height);
+          }
+        });
+      }
+    }
+    
+    /***********************************
+     * AI Turn (Random Moves for Black)
+     ***********************************/
+    function aiTurn() {
+      if (currentTurn === "w") return; // Human is White
+      setTimeout(() => {
+        if (currentDice.length === 0) {
+          let finalDice = rollDiceSimple();
+          animateDice(finalDice, diceAnimationDuration, () => {
+            currentDice = finalDice;
+            aiTurn();
+          });
+          return;
+        }
+        let moves = [];
+        if (bar[currentTurn] > 0) {
+          moves = getLegalMovesFromBar();
+        } else {
+          for (let i = 0; i < 24; i++) {
+            if (board[i] && board[i].owner === currentTurn) {
+              let legal = getLegalMoves(i);
+              if (legal.length) moves = moves.concat(legal);
+            }
+          }
+        }
+        if (moves.length === 0) {
+          currentDice = [];
+          endTurn();
+          return;
+        }
+        let move = moves[Math.floor(Math.random() * moves.length)];
+        makeMove(move);
+        redrawBoard();
+        drawBarPieces();
+        if (currentDice.length > 0 && !hasLegalMoves()) {
+          currentDice = [];
+          endTurn();
+        } else if (currentDice.length > 0) {
+          aiTurn();
+        } else {
+          endTurn();
+        }
+      }, getAIDelay());
+    }
+    
+    function hasLegalMoves() {
+      let moves = [];
+      if (bar[currentTurn] > 0) {
+        moves = getLegalMovesFromBar();
+      } else {
+        for (let i = 0; i < 24; i++) {
+          if (board[i] && board[i].owner === currentTurn) {
+            let legal = getLegalMoves(i);
+            if (legal.length) moves = moves.concat(legal);
+          }
+        }
+      }
+      return moves.length > 0;
+    }
+    
+    function getAIDelay() {
+      if (difficulty === "hard") return 1000;
+      if (difficulty === "medium") return 1500;
+      return 2000;
+    }
+    
+    function endTurn() {
+      currentTurn = (currentTurn === "w") ? "b" : "w";
+      currentDice = [];
+      if (!checkGameOver()) {
+        if (currentTurn === playerColor) {
+          rollBtn.style.display = "block";
+          rollBtn.disabled = false;
+        } else {
+          rollBtn.style.display = "none";
+          aiTurn();
+        }
+      }
+    }
+    
+    function checkGameOver() {
+      if (borneOff.w >= 15) {
+        showGameOver("Game Over: White wins!");
+        return true;
+      }
+      if (borneOff.b >= 15) {
+        showGameOver("Game Over: Black wins!");
+        return true;
+      }
+      return false;
+    }
+    
+    /***********************************
+     * Redraw & Main Loop
+     ***********************************/
+    function redrawBoard() {
+      drawBoard();
+      drawPieces();
+    }
+    function redraw() {
+      redrawBoard();
+      highlightLegalOptions();
+      if (currentDice.length) drawDice(currentDice);
+      drawBarPieces();
+    }
+    function mainLoop() {
+      redraw();
+      requestAnimationFrame(mainLoop);
+    }
+    window.addEventListener("load", () => { mainLoop(); });
+    
+    /***********************************
+     * Bar Pieces Drawing
+     ***********************************/
+    function drawBarPieces() {
+      barCtx.clearRect(0, 0, barCanvas.width, barCanvas.height);
+      barCtx.font = "16px sans-serif";
+      barCtx.fillStyle = "#000";
+      barCtx.fillText("Bar", barCanvas.width/2, 20);
+      const pieceRadius = 15, spacing = pieceRadius * 2.2;
+      for (let j = 0; j < bar.w; j++) {
+        let cx = barCanvas.width/2, cy = 40 + j * spacing;
+        barCtx.beginPath();
+        barCtx.arc(cx, cy, pieceRadius, 0, 2*Math.PI);
+        barCtx.fillStyle = "#fff";
+        barCtx.fill();
+        barCtx.strokeStyle = "#000";
+        barCtx.stroke();
+      }
+      for (let j = 0; j < bar.b; j++) {
+        let cx = barCanvas.width/2, cy = barCanvas.height - 40 - j * spacing;
+        barCtx.beginPath();
+        barCtx.arc(cx, cy, pieceRadius, 0, 2*Math.PI);
+        barCtx.fillStyle = "#000";
+        barCtx.fill();
+        barCtx.strokeStyle = "#000";
+        barCtx.stroke();
+      }
+    }
+    
+    /***********************************
+     * Human Input Handling
+     ***********************************/
+    boardCanvas.addEventListener("mousedown", (e) => {
+      if (currentTurn !== "w") return; // Human is White
+      const rect = boardCanvas.getBoundingClientRect();
+      const mx = e.clientX - rect.left;
+      const my = e.clientY - rect.top;
+      let clicked = getPointFromCoordinates(mx, my);
+      if (clicked === null) return;
+      // If checkers on bar, force re-entry.
+      if (bar[currentTurn] > 0) {
+        let reEntryMoves = getLegalMovesFromBar();
+        if (!reEntryMoves.length) return;
+        selectedPoint = "bar";
+        legalMoves = reEntryMoves;
+        let move = reEntryMoves.find(m => m.to === clicked);
+        if (move) {
+          makeMove(move);
+          redrawBoard();
+          drawBarPieces();
+          return;
+        }
+        return;
+      }
+      if (selectedPoint === null) {
+        if (board[clicked] && board[clicked].owner === currentTurn) {
+          selectedPoint = clicked;
+          legalMoves = getLegalMoves(clicked);
+        }
+      } else {
+        if (board[clicked] && board[clicked].owner === currentTurn && clicked !== selectedPoint) {
+          selectedPoint = clicked;
+          legalMoves = getLegalMoves(clicked);
+        } else {
+          let move = legalMoves.find(m => m.to === clicked);
+          if (move) {
+            makeMove(move);
+          }
+          selectedPoint = null;
+          legalMoves = [];
+        }
+      }
+      redrawBoard();
+      if (currentDice.length) drawDice(currentDice);
+      drawBarPieces();
+    });
+    
+    function getPointFromCoordinates(x, y) {
+      if (y < boardTop || y > boardTop + boardHeight) return null;
+      let pt;
+      if (y < boardTop + boardHeight/2) {
+        let pos = Math.floor((x - boardMargin) / pointWidth);
+        pt = pos + 13;
+      } else {
+        let pos = Math.floor((x - boardMargin) / pointWidth);
+        pt = 12 - pos;
+      }
+      return pt - 1;
+    }
+    
+    /***********************************
+     * Highlight Legal Moves
+     ***********************************/
+    function highlightLegalOptions() {
+      if (selectedPoint !== null) {
+        let selCoords = getTriangleCoordinates(selectedPoint);
+        if (selCoords) {
+          ctx.strokeStyle = "red";
+          ctx.lineWidth = 4;
+          ctx.strokeRect(selCoords.x, selCoords.y, selCoords.width, selCoords.height);
+        }
+        legalMoves.forEach(move => {
+          let dest = getTriangleCoordinates(move.to);
+          if (dest) {
+            ctx.strokeStyle = "yellow";
+            ctx.lineWidth = 4;
+            ctx.strokeRect(dest.x, dest.y, dest.width, dest.height);
+          }
+        });
+      }
+    }
+    
+    /***********************************
+     * AI Turn (Random Moves for Black)
+     ***********************************/
+    function aiTurn() {
+      if (currentTurn === "w") return; // Human is White
+      setTimeout(() => {
+        if (currentDice.length === 0) {
+          let finalDice = rollDiceSimple();
+          animateDice(finalDice, diceAnimationDuration, () => {
+            currentDice = finalDice;
+            aiTurn();
+          });
+          return;
+        }
+        let moves = [];
+        if (bar[currentTurn] > 0) {
+          moves = getLegalMovesFromBar();
+        } else {
+          for (let i = 0; i < 24; i++) {
+            if (board[i] && board[i].owner === currentTurn) {
+              let legal = getLegalMoves(i);
+              if (legal.length) moves = moves.concat(legal);
+            }
+          }
+        }
+        if (moves.length === 0) {
+          currentDice = [];
+          endTurn();
+          return;
+        }
+        let move = moves[Math.floor(Math.random() * moves.length)];
+        makeMove(move);
+        redrawBoard();
+        drawBarPieces();
+        if (currentDice.length > 0 && !hasLegalMoves()) {
+          currentDice = [];
+          endTurn();
+        } else if (currentDice.length > 0) {
+          aiTurn();
+        } else {
+          endTurn();
+        }
+      }, getAIDelay());
+    }
+    
+    function hasLegalMoves() {
+      let moves = [];
+      if (bar[currentTurn] > 0) {
+        moves = getLegalMovesFromBar();
+      } else {
+        for (let i = 0; i < 24; i++) {
+          if (board[i] && board[i].owner === currentTurn) {
+            let legal = getLegalMoves(i);
+            if (legal.length) moves = moves.concat(legal);
+          }
+        }
+      }
+      return moves.length > 0;
+    }
+    
+    function getAIDelay() {
+      if (difficulty === "hard") return 1000;
+      if (difficulty === "medium") return 1500;
+      return 2000;
+    }
+    
+    function endTurn() {
+      currentTurn = (currentTurn === "w") ? "b" : "w";
+      currentDice = [];
+      if (!checkGameOver()) {
+        if (currentTurn === playerColor) {
+          rollBtn.style.display = "block";
+          rollBtn.disabled = false;
+        } else {
+          rollBtn.style.display = "none";
+          aiTurn();
+        }
+      }
+    }
+    
+    function checkGameOver() {
+      if (borneOff.w >= 15) {
+        showGameOver("Game Over: White wins!");
+        return true;
+      }
+      if (borneOff.b >= 15) {
+        showGameOver("Game Over: Black wins!");
+        return true;
+      }
+      return false;
+    }
+    
+    /***********************************
+     * Redraw & Main Loop
+     ***********************************/
+    function redrawBoard() {
+      drawBoard();
+      drawPieces();
+    }
+    function redraw() {
+      redrawBoard();
+      highlightLegalOptions();
+      if (currentDice.length) drawDice(currentDice);
+      drawBarPieces();
+    }
+    function mainLoop() {
+      redraw();
+      requestAnimationFrame(mainLoop);
+    }
+    window.addEventListener("load", () => { mainLoop(); });
+    
+    /***********************************
+     * Bar Pieces Drawing
+     ***********************************/
+    function drawBarPieces() {
+      barCtx.clearRect(0, 0, barCanvas.width, barCanvas.height);
+      barCtx.font = "16px sans-serif";
+      barCtx.fillStyle = "#000";
+      barCtx.fillText("Bar", barCanvas.width/2, 20);
+      const pieceRadius = 15, spacing = pieceRadius * 2.2;
+      for (let j = 0; j < bar.w; j++) {
+        let cx = barCanvas.width/2, cy = 40 + j * spacing;
+        barCtx.beginPath();
+        barCtx.arc(cx, cy, pieceRadius, 0, 2*Math.PI);
+        barCtx.fillStyle = "#fff";
+        barCtx.fill();
+        barCtx.strokeStyle = "#000";
+        barCtx.stroke();
+      }
+      for (let j = 0; j < bar.b; j++) {
+        let cx = barCanvas.width/2, cy = barCanvas.height - 40 - j * spacing;
+        barCtx.beginPath();
+        barCtx.arc(cx, cy, pieceRadius, 0, 2*Math.PI);
+        barCtx.fillStyle = "#000";
+        barCtx.fill();
+        barCtx.strokeStyle = "#000";
+        barCtx.stroke();
+      }
+    }
+    
+    /***********************************
+     * Human Input Handling
+     ***********************************/
+    boardCanvas.addEventListener("mousedown", (e) => {
+      if (currentTurn !== "w") return; // Human is White
+      const rect = boardCanvas.getBoundingClientRect();
+      const mx = e.clientX - rect.left;
+      const my = e.clientY - rect.top;
+      let clicked = getPointFromCoordinates(mx, my);
+      if (clicked === null) return;
+      // If checkers on bar, force re-entry.
+      if (bar[currentTurn] > 0) {
+        let reEntryMoves = getLegalMovesFromBar();
+        if (!reEntryMoves.length) return;
+        selectedPoint = "bar";
+        legalMoves = reEntryMoves;
+        let move = reEntryMoves.find(m => m.to === clicked);
+        if (move) {
+          makeMove(move);
+          redrawBoard();
+          drawBarPieces();
+          return;
+        }
+        return;
+      }
+      if (selectedPoint === null) {
+        if (board[clicked] && board[clicked].owner === currentTurn) {
+          selectedPoint = clicked;
+          legalMoves = getLegalMoves(clicked);
+        }
+      } else {
+        if (board[clicked] && board[clicked].owner === currentTurn && clicked !== selectedPoint) {
+          selectedPoint = clicked;
+          legalMoves = getLegalMoves(clicked);
+        } else {
+          let move = legalMoves.find(m => m.to === clicked);
+          if (move) {
+            makeMove(move);
+          }
+          selectedPoint = null;
+          legalMoves = [];
+        }
+      }
+      redrawBoard();
+      if (currentDice.length) drawDice(currentDice);
+      drawBarPieces();
+    });
+    
+    function getPointFromCoordinates(x, y) {
+      if (y < boardTop || y > boardTop + boardHeight) return null;
+      let pt;
+      if (y < boardTop + boardHeight/2) {
+        let pos = Math.floor((x - boardMargin) / pointWidth);
+        pt = pos + 13;
+      } else {
+        let pos = Math.floor((x - boardMargin) / pointWidth);
+        pt = 12 - pos;
+      }
+      return pt - 1;
+    }
+    
+    /***********************************
+     * Highlight Legal Moves
+     ***********************************/
+    function highlightLegalOptions() {
+      if (selectedPoint !== null) {
+        let selCoords = getTriangleCoordinates(selectedPoint);
+        if (selCoords) {
+          ctx.strokeStyle = "red";
+          ctx.lineWidth = 4;
+          ctx.strokeRect(selCoords.x, selCoords.y, selCoords.width, selCoords.height);
+        }
+        legalMoves.forEach(move => {
+          let dest = getTriangleCoordinates(move.to);
+          if (dest) {
+            ctx.strokeStyle = "yellow";
+            ctx.lineWidth = 4;
+            ctx.strokeRect(dest.x, dest.y, dest.width, dest.height);
+          }
+        });
+      }
+    }
+    
+    /***********************************
+     * AI Turn (Random Moves for Black)
+     ***********************************/
+    function aiTurn() {
+      if (currentTurn === "w") return; // Human is White
+      setTimeout(() => {
+        if (currentDice.length === 0) {
+          let finalDice = rollDiceSimple();
+          animateDice(finalDice, diceAnimationDuration, () => {
+            currentDice = finalDice;
+            aiTurn();
+          });
+          return;
+        }
+        let moves = [];
+        if (bar[currentTurn] > 0) {
+          moves = getLegalMovesFromBar();
+        } else {
+          for (let i = 0; i < 24; i++) {
+            if (board[i] && board[i].owner === currentTurn) {
+              let legal = getLegalMoves(i);
+              if (legal.length) moves = moves.concat(legal);
+            }
+          }
+        }
+        if (moves.length === 0) {
+          currentDice = [];
+          endTurn();
+          return;
+        }
+        let move = moves[Math.floor(Math.random() * moves.length)];
+        makeMove(move);
+        redrawBoard();
+        drawBarPieces();
+        if (currentDice.length > 0 && !hasLegalMoves()) {
+          currentDice = [];
+          endTurn();
+        } else if (currentDice.length > 0) {
+          aiTurn();
+        } else {
+          endTurn();
+        }
+      }, getAIDelay());
+    }
+    
+    function hasLegalMoves() {
+      let moves = [];
+      if (bar[currentTurn] > 0) {
+        moves = getLegalMovesFromBar();
+      } else {
+        for (let i = 0; i < 24; i++) {
+          if (board[i] && board[i].owner === currentTurn) {
+            let legal = getLegalMoves(i);
+            if (legal.length) moves = moves.concat(legal);
+          }
+        }
+      }
+      return moves.length > 0;
+    }
+    
+    function getAIDelay() {
+      if (difficulty === "hard") return 1000;
+      if (difficulty === "medium") return 1500;
+      return 2000;
+    }
+    
+    function endTurn() {
+      currentTurn = (currentTurn === "w") ? "b" : "w";
+      currentDice = [];
+      if (!checkGameOver()) {
+        if (currentTurn === playerColor) {
+          rollBtn.style.display = "block";
+          rollBtn.disabled = false;
+        } else {
+          rollBtn.style.display = "none";
+          aiTurn();
+        }
+      }
+    }
+    
+    function checkGameOver() {
+      if (borneOff.w >= 15) {
+        showGameOver("Game Over: White wins!");
+        return true;
+      }
+      if (borneOff.b >= 15) {
+        showGameOver("Game Over: Black wins!");
+        return true;
+      }
+      return false;
+    }
+    
+    /***********************************
+     * Redraw & Main Loop
+     ***********************************/
+    function redrawBoard() {
+      drawBoard();
+      drawPieces();
+    }
+    function redraw() {
+      redrawBoard();
+      highlightLegalOptions();
+      if (currentDice.length) drawDice(currentDice);
+      drawBarPieces();
+    }
+    function mainLoop() {
+      redraw();
+      requestAnimationFrame(mainLoop);
+    }
+    window.addEventListener("load", () => { mainLoop(); });
+    
+    /***********************************
+     * Bar Pieces Drawing
+     ***********************************/
+    function drawBarPieces() {
+      barCtx.clearRect(0, 0, barCanvas.width, barCanvas.height);
+      barCtx.font = "16px sans-serif";
+      barCtx.fillStyle = "#000";
+      barCtx.fillText("Bar", barCanvas.width/2, 20);
+      const pieceRadius = 15, spacing = pieceRadius * 2.2;
+      for (let j = 0; j < bar.w; j++) {
+        let cx = barCanvas.width/2, cy = 40 + j * spacing;
+        barCtx.beginPath();
+        barCtx.arc(cx, cy, pieceRadius, 0, 2*Math.PI);
+        barCtx.fillStyle = "#fff";
+        barCtx.fill();
+        barCtx.strokeStyle = "#000";
+        barCtx.stroke();
+      }
+      for (let j = 0; j < bar.b; j++) {
+        let cx = barCanvas.width/2, cy = barCanvas.height - 40 - j * spacing;
+        barCtx.beginPath();
+        barCtx.arc(cx, cy, pieceRadius, 0, 2*Math.PI);
+        barCtx.fillStyle = "#000";
+        barCtx.fill();
+        barCtx.strokeStyle = "#000";
+        barCtx.stroke();
+      }
+    }
+    
+    /***********************************
+     * Human Input Handling
+     ***********************************/
+    boardCanvas.addEventListener("mousedown", (e) => {
+      if (currentTurn !== "w") return; // Human is White
+      const rect = boardCanvas.getBoundingClientRect();
+      const mx = e.clientX - rect.left;
+      const my = e.clientY - rect.top;
+      let clicked = getPointFromCoordinates(mx, my);
+      if (clicked === null) return;
+      if (bar[currentTurn] > 0) {
+        let reEntryMoves = getLegalMovesFromBar();
+        if (!reEntryMoves.length) return;
+        selectedPoint = "bar";
+        legalMoves = reEntryMoves;
+        let move = reEntryMoves.find(m => m.to === clicked);
+        if (move) {
+          makeMove(move);
+          redrawBoard();
+          drawBarPieces();
+          return;
+        }
+        return;
+      }
+      if (selectedPoint === null) {
+        if (board[clicked] && board[clicked].owner === currentTurn) {
+          selectedPoint = clicked;
+          legalMoves = getLegalMoves(clicked);
+        }
+      } else {
+        if (board[clicked] && board[clicked].owner === currentTurn && clicked !== selectedPoint) {
+          selectedPoint = clicked;
+          legalMoves = getLegalMoves(clicked);
+        } else {
+          let move = legalMoves.find(m => m.to === clicked);
+          if (move) {
+            makeMove(move);
+          }
+          selectedPoint = null;
+          legalMoves = [];
+        }
+      }
+      redrawBoard();
+      if (currentDice.length) drawDice(currentDice);
+      drawBarPieces();
+    });
+    
+    function getPointFromCoordinates(x, y) {
+      if (y < boardTop || y > boardTop + boardHeight) return null;
+      let pt;
+      if (y < boardTop + boardHeight/2) {
+        let pos = Math.floor((x - boardMargin) / pointWidth);
+        pt = pos + 13;
+      } else {
+        let pos = Math.floor((x - boardMargin) / pointWidth);
+        pt = 12 - pos;
+      }
+      return pt - 1;
+    }
+    
+    /***********************************
+     * Highlight Legal Moves
+     ***********************************/
+    function highlightLegalOptions() {
+      if (selectedPoint !== null) {
+        let selCoords = getTriangleCoordinates(selectedPoint);
+        if (selCoords) {
+          ctx.strokeStyle = "red";
+          ctx.lineWidth = 4;
+          ctx.strokeRect(selCoords.x, selCoords.y, selCoords.width, selCoords.height);
+        }
+        legalMoves.forEach(move => {
+          let dest = getTriangleCoordinates(move.to);
+          if (dest) {
+            ctx.strokeStyle = "yellow";
+            ctx.lineWidth = 4;
+            ctx.strokeRect(dest.x, dest.y, dest.width, dest.height);
+          }
+        });
+      }
+    }
+    
+    /***********************************
+     * getLegalMoves Function
+     ***********************************/
+    function getLegalMoves(pointIndex) {
+      let moves = [];
+      if (!board[pointIndex] || board[pointIndex].owner !== currentTurn) return moves;
+      currentDice.forEach(die => {
+        let dest;
+        if (currentTurn === 'w') {
+          dest = pointIndex + die;
+          if (dest > 23 && allCheckersInHome('w')) {
+            moves.push({ from: pointIndex, to: 24, die, bearOff: true });
+          } else if (dest <= 23) {
+            if (!board[dest] || board[dest].owner === currentTurn ||
+                (board[dest].owner !== currentTurn && board[dest].count === 1)) {
+              moves.push({ from: pointIndex, to: dest, die, hit: (board[dest] && board[dest].owner !== currentTurn && board[dest].count === 1) || false });
+            }
+          }
+        } else {
+          dest = pointIndex - die;
+          if (dest < 0 && allCheckersInHome('b')) {
+            moves.push({ from: pointIndex, to: -1, die, bearOff: true });
+          } else if (dest >= 0) {
+            if (!board[dest] || board[dest].owner === currentTurn ||
+                (board[dest].owner !== currentTurn && board[dest].count === 1)) {
+              moves.push({ from: pointIndex, to: dest, die, hit: (board[dest] && board[dest].owner !== currentTurn && board[dest].count === 1) || false });
+            }
+          }
+        }
+      });
+      return moves;
+    }
+    
+    function getLegalMovesFromBar() {
+      let moves = [];
+      if (bar[currentTurn] <= 0) return moves;
+      currentDice.forEach(die => {
+        let dest;
+        if (currentTurn === 'w') {
+          dest = die - 1;
+        } else {
+          dest = 24 - die;
+        }
+        if (dest < 0 || dest > 23) return;
+        if (!board[dest] || board[dest].owner === currentTurn ||
+            (board[dest].owner !== currentTurn && board[dest].count === 1)) {
+          moves.push({ from: "bar", to: dest, die, hit: (board[dest] && board[dest].owner !== currentTurn && board[dest].count === 1) || false });
+        }
+      });
+      return moves;
+    }
+    
+    function allCheckersInHome(color) {
+      for (let i = 0; i < 24; i++) {
+        if (board[i] && board[i].owner === color) {
+          if (color === 'w' && i < 18) return false;
+          if (color === 'b' && i > 5) return false;
+        }
+      }
+      return (bar[color] === 0);
+    }
+    
+    /***********************************
+     * makeMove Function
+     ***********************************/
+    function makeMove(move) {
+      if (move.from === "bar") {
+        bar[currentTurn]--;
+      } else {
+        if (board[move.from]) {
+          board[move.from].count--;
+          if (board[move.from].count === 0) board[move.from] = null;
+        }
+      }
+      if (move.bearOff) {
+        borneOff[currentTurn]++;
+      } else {
+        if (move.hit) {
+          let opp = currentTurn === 'w' ? 'b' : 'w';
+          bar[opp]++;
+          board[move.to] = { owner: currentTurn, count: 1 };
+        } else {
+          if (!board[move.to]) {
+            board[move.to] = { owner: currentTurn, count: 1 };
+          } else {
+            board[move.to].count++;
+          }
+        }
+      }
+      let idx = currentDice.indexOf(move.die);
+      if (idx !== -1) currentDice.splice(idx, 1);
+      selectedPoint = null;
+      legalMoves = [];
+    }
+    
+    /***********************************
+     * Redraw & Main Loop
+     ***********************************/
+    function redrawBoard() {
+      drawBoard();
+      drawPieces();
+    }
+    function redraw() {
+      redrawBoard();
+      highlightLegalOptions();
+      if (currentDice.length) drawDice(currentDice);
+      drawBarPieces();
+    }
+    function mainLoop() {
+      redraw();
+      requestAnimationFrame(mainLoop);
+    }
+    window.addEventListener("load", () => { mainLoop(); });
+    
+    /***********************************
+     * Redraw: Bar & Board Pieces
+     ***********************************/
+    function drawBarPieces() {
+      barCtx.clearRect(0, 0, barCanvas.width, barCanvas.height);
+      barCtx.font = "16px sans-serif";
+      barCtx.fillStyle = "#000";
+      barCtx.fillText("Bar", barCanvas.width/2, 20);
+      const pieceRadius = 15, spacing = pieceRadius * 2.2;
+      for (let j = 0; j < bar.w; j++) {
+        let cx = barCanvas.width/2, cy = 40 + j * spacing;
+        barCtx.beginPath();
+        barCtx.arc(cx, cy, pieceRadius, 0, 2*Math.PI);
+        barCtx.fillStyle = "#fff";
+        barCtx.fill();
+        barCtx.strokeStyle = "#000";
+        barCtx.stroke();
+      }
+      for (let j = 0; j < bar.b; j++) {
+        let cx = barCanvas.width/2, cy = barCanvas.height - 40 - j * spacing;
+        barCtx.beginPath();
+        barCtx.arc(cx, cy, pieceRadius, 0, 2*Math.PI);
+        barCtx.fillStyle = "#000";
+        barCtx.fill();
+        barCtx.strokeStyle = "#000";
+        barCtx.stroke();
+      }
+    }
+    
+    function drawBoard() {
+      ctx.clearRect(0, 0, WIDTH, HEIGHT);
+      ctx.fillStyle = "#e0e0e0";
+      ctx.fillRect(boardMargin, 20, WIDTH - 2 * boardMargin, bearOffTop - 20);
+      ctx.strokeStyle = "blue";
+      ctx.lineWidth = 3;
+      ctx.strokeRect(boardMargin, 20, WIDTH - 2 * boardMargin, bearOffTop - 20);
+      ctx.font = "18px sans-serif";
+      ctx.fillStyle = "blue";
+      ctx.textAlign = "center";
+      ctx.fillText("White Bear Off", WIDTH / 2, 40);
+      
+      ctx.fillStyle = "#e0e0e0";
+      ctx.fillRect(boardMargin, boardTop + boardHeight + 20, WIDTH - 2 * boardMargin, bearOffBottom - 20);
+      ctx.strokeStyle = "blue";
+      ctx.strokeRect(boardMargin, boardTop + boardHeight + 20, WIDTH - 2 * boardMargin, bearOffBottom - 20);
+      ctx.fillStyle = "blue";
+      ctx.fillText("Black Bear Off", WIDTH / 2, boardTop + boardHeight + 40);
+      
+      ctx.fillStyle = "#f5f5f5";
+      ctx.fillRect(0, boardTop, WIDTH, boardHeight);
+      
+      ctx.fillStyle = "#006400";
+      ctx.fillRect(boardMargin, boardTop, boardWidth/2, boardHeight);
+      ctx.fillRect(boardMargin + boardWidth/2 + barWidth, boardTop, boardWidth/2, boardHeight);
+      
+      ctx.fillStyle = "#8B4513";
+      ctx.fillRect(boardMargin + boardWidth/2, boardTop, barWidth, boardHeight);
+      
+      for (let p = 1; p <= 12; p++) {
+        let pos = 12 - p;
+        let x = boardMargin + pos * pointWidth;
+        let y = boardTop + boardHeight - boardHeight/2;
+        let direction = "up";
+        let color = (p % 2 === 0) ? "#deb887" : "#d2b48c";
+        drawTriangle(x, y, pointWidth, boardHeight/2, direction, color);
+      }
+      for (let p = 13; p <= 24; p++) {
+        let idx = p - 13;
+        let x = boardMargin + idx * pointWidth;
+        let y = boardTop;
+        let direction = "down";
+        let color = (p % 2 === 0) ? "#deb887" : "#d2b48c";
+        drawTriangle(x, y, pointWidth, boardHeight/2, direction, color);
+      }
+      drawBearOffPieces();
+    }
+    
+    function drawTriangle(x, y, width, height, direction, color) {
+      ctx.fillStyle = color;
+      ctx.beginPath();
+      if (direction === "up") {
+        ctx.moveTo(x, y + height);
+        ctx.lineTo(x + width/2, y);
+        ctx.lineTo(x + width, y + height);
+      } else {
+        ctx.moveTo(x, y);
+        ctx.lineTo(x + width/2, y + height);
+        ctx.lineTo(x + width, y);
+      }
+      ctx.closePath();
+      ctx.fill();
+      ctx.strokeStyle = "#000";
+      ctx.stroke();
+    }
+    
+    function getTriangleCoordinates(idx) {
+      let x, y, width = pointWidth, height;
+      if (idx >= 12 && idx <= 23) {
+        let p = idx + 1;
+        x = boardMargin + (p - 13) * pointWidth;
+        y = boardTop;
+        height = boardHeight/2;
+        return { x, y, width, height };
+      } else if (idx >= 0 && idx <= 11) {
+        let p = idx + 1;
+        let pos = 12 - p;
+        x = boardMargin + pos * pointWidth;
+        y = boardTop + boardHeight/2;
+        height = boardHeight/2;
+        return { x, y, width, height };
+      }
+      return null;
+    }
+    
+    function drawBearOffPieces() {
+      const pieceRadius = 15, spacing = pieceRadius * 2.2;
+      for (let i = 0; i < borneOff.w; i++) {
+        let cx = boardMargin + 30 + i * spacing;
+        let cy = boardTop + boardHeight/2 - 30;
+        drawChecker(cx, cy, pieceRadius, 'w');
+      }
+      for (let i = 0; i < borneOff.b; i++) {
+        let cx = boardMargin + 30 + i * spacing;
+        let cy = boardTop + boardHeight/2 + 50;
+        drawChecker(cx, cy, pieceRadius, 'b');
+      }
+    }
+    
+    function drawChecker(cx, cy, radius, owner) {
+      ctx.beginPath();
+      ctx.arc(cx, cy, radius, 0, 2 * Math.PI);
+      ctx.fillStyle = owner === 'w' ? whiteColor : blackColor;
+      ctx.fill();
+      ctx.strokeStyle = "#000";
+      ctx.stroke();
+    }
+    
+    function drawPieces() {
+      for (let i = 0; i < 24; i++) {
+        if (!board[i]) continue;
+        let tri = getTriangleCoordinates(i);
+        let centerX = tri.x + tri.width/2;
+        let spacing = Math.min(tri.width, tri.height) / 3;
+        for (let j = 0; j < board[i].count; j++) {
+          let centerY;
+          if (i < 12) {
+            centerY = tri.y + tri.height - (j + 0.5) * spacing;
+          } else {
+            centerY = tri.y + (j + 0.5) * spacing;
+          }
+          drawChecker(centerX, centerY, 15, board[i].owner);
+        }
+      }
+    }
+    
+    function redrawBoard() {
+      drawBoard();
+      drawPieces();
+    }
+    
+    /***********************************
+     * Dice Functions & Animation
      ***********************************/
     function rollDiceSimple() {
       return [Math.floor(Math.random() * 6) + 1, Math.floor(Math.random() * 6) + 1];
     }
     function drawDie(x, y, size, value) {
-      // Ensure the die value is a number between 1 and 6.
       value = Number(value);
       if (value < 1 || value > 6) {
         console.error("Invalid die value:", value);
@@ -845,6 +2086,7 @@
       }, 100);
     }
     rollBtn.addEventListener("click", () => {
+      rollBtn.disabled = true; // Lock the dice button
       const finalDice = rollDiceSimple();
       animateDice(finalDice, diceAnimationDuration, () => {
         currentDice = finalDice;
@@ -854,229 +2096,6 @@
     
     /***********************************
      * Redraw & Main Loop
-     ***********************************/
-    function redrawBoard() {
-      drawBoard();
-      drawPieces();
-    }
-    function redraw() {
-      redrawBoard();
-      highlightLegalOptions();
-      if (currentDice.length) drawDice(currentDice);
-      drawBarPieces();
-    }
-    function mainLoop() {
-      redraw();
-      requestAnimationFrame(mainLoop);
-    }
-    window.addEventListener("load", () => { mainLoop(); });
-    
-    /***********************************
-     * Bar Pieces Drawing
-     ***********************************/
-    function drawBarPieces() {
-      barCtx.clearRect(0, 0, barCanvas.width, barCanvas.height);
-      barCtx.font = "16px sans-serif";
-      barCtx.fillStyle = "#000";
-      barCtx.fillText("Bar", barCanvas.width/2, 20);
-      const pieceRadius = 15, spacing = pieceRadius * 2.2;
-      for (let j = 0; j < bar.w; j++) {
-        let cx = barCanvas.width/2, cy = 40+j*spacing;
-        barCtx.beginPath();
-        barCtx.arc(cx, cy, pieceRadius, 0, 2*Math.PI);
-        barCtx.fillStyle = "#fff";
-        barCtx.fill();
-        barCtx.strokeStyle = "#000";
-        barCtx.stroke();
-      }
-      for (let j = 0; j < bar.b; j++) {
-        let cx = barCanvas.width/2, cy = barCanvas.height-40-j*spacing;
-        barCtx.beginPath();
-        barCtx.arc(cx, cy, pieceRadius, 0, 2*Math.PI);
-        barCtx.fillStyle = "#000";
-        barCtx.fill();
-        barCtx.strokeStyle = "#000";
-        barCtx.stroke();
-      }
-    }
-    
-    /***********************************
-     * Human Input Handling
-     ***********************************/
-    boardCanvas.addEventListener("mousedown", (e) => {
-      if (currentTurn !== "w") return; // Human is White
-      const rect = boardCanvas.getBoundingClientRect();
-      const mx = e.clientX - rect.left;
-      const my = e.clientY - rect.top;
-      let clicked = getPointFromCoordinates(mx, my);
-      if (clicked === null) return;
-      // If checkers on bar, force re-entry
-      if (bar[currentTurn] > 0) {
-        let reEntryMoves = getLegalMovesFromBar();
-        if (!reEntryMoves.length) return;
-        selectedPoint = "bar";
-        legalMoves = reEntryMoves;
-        let move = reEntryMoves.find(m => m.to === clicked);
-        if (move) {
-          makeMove(move);
-          redrawBoard();
-          drawBarPieces();
-          return;
-        }
-        return;
-      }
-      if (selectedPoint === null) {
-        if (board[clicked] && board[clicked].owner === currentTurn) {
-          selectedPoint = clicked;
-          legalMoves = getLegalMoves(clicked);
-        }
-      } else {
-        // If clicking on another own piece, reselect it.
-        if (board[clicked] && board[clicked].owner === currentTurn && clicked !== selectedPoint) {
-          selectedPoint = clicked;
-          legalMoves = getLegalMoves(clicked);
-        } else {
-          let move = legalMoves.find(m => m.to === clicked);
-          if (move) {
-            makeMove(move);
-          }
-          selectedPoint = null;
-          legalMoves = [];
-        }
-      }
-      redrawBoard();
-      if (currentDice.length) drawDice(currentDice);
-      drawBarPieces();
-    });
-    
-    function getPointFromCoordinates(x, y) {
-      if (y < boardTop || y > boardTop + boardHeight) return null;
-      let pt;
-      if (y < boardTop + boardHeight/2) {
-        let pos = Math.floor((x - boardMargin) / pointWidth);
-        pt = pos + 13;
-      } else {
-        let pos = Math.floor((x - boardMargin) / pointWidth);
-        pt = 12 - pos;
-      }
-      return pt - 1;
-    }
-    
-    /***********************************
-     * Highlight Legal Moves (Improved)
-     ***********************************/
-    function highlightLegalOptions() {
-      if (selectedPoint !== null) {
-        let selCoords = getTriangleCoordinates(selectedPoint);
-        if (selCoords) {
-          ctx.strokeStyle = "red";
-          ctx.lineWidth = 4;
-          ctx.strokeRect(selCoords.x, selCoords.y, selCoords.width, selCoords.height);
-        }
-        legalMoves.forEach(move => {
-          let dest = getTriangleCoordinates(move.to);
-          if (dest) {
-            ctx.strokeStyle = "yellow";
-            ctx.lineWidth = 4;
-            ctx.strokeRect(dest.x, dest.y, dest.width, dest.height);
-          }
-        });
-      }
-    }
-    
-    /***********************************
-     * AI Turn (Random Moves for Black)
-     ***********************************/
-    function aiTurn() {
-      if (currentTurn === "w") return; // Human is White
-      setTimeout(() => {
-        if (currentDice.length === 0) {
-          let finalDice = rollDiceSimple();
-          animateDice(finalDice, diceAnimationDuration, () => {
-            currentDice = finalDice;
-            aiTurn();
-          });
-          return;
-        }
-        let moves = [];
-        if (bar[currentTurn] > 0) {
-          moves = getLegalMovesFromBar();
-        } else {
-          for (let i = 0; i < 24; i++) {
-            if (board[i] && board[i].owner === currentTurn) {
-              let legal = getLegalMoves(i);
-              if (legal.length) moves = moves.concat(legal);
-            }
-          }
-        }
-        if (moves.length === 0) {
-          currentDice = [];
-          endTurn();
-          return;
-        }
-        let move = moves[Math.floor(Math.random() * moves.length)];
-        makeMove(move);
-        redrawBoard();
-        drawBarPieces();
-        if (currentDice.length > 0 && !hasLegalMoves()) {
-          currentDice = [];
-          endTurn();
-        } else if (currentDice.length > 0) {
-          aiTurn();
-        } else {
-          endTurn();
-        }
-      }, getAIDelay());
-    }
-    
-    function hasLegalMoves() {
-      let moves = [];
-      if (bar[currentTurn] > 0) {
-        moves = getLegalMovesFromBar();
-      } else {
-        for (let i = 0; i < 24; i++) {
-          if (board[i] && board[i].owner === currentTurn) {
-            let legal = getLegalMoves(i);
-            if (legal.length) moves = moves.concat(legal);
-          }
-        }
-      }
-      return moves.length > 0;
-    }
-    
-    function getAIDelay() {
-      if (difficulty === "hard") return 1000;
-      if (difficulty === "medium") return 1500;
-      return 2000;
-    }
-    
-    function endTurn() {
-      currentTurn = (currentTurn === "w") ? "b" : "w";
-      currentDice = [];
-      if (!checkGameOver()) {
-        if (currentTurn === "w") {
-          rollBtn.style.display = "block";
-        } else {
-          rollBtn.style.display = "none";
-          aiTurn();
-        }
-      }
-    }
-    
-    function checkGameOver() {
-      if (borneOff.w >= 15) {
-        showGameOver("Game Over: White wins!");
-        return true;
-      }
-      if (borneOff.b >= 15) {
-        showGameOver("Game Over: Black wins!");
-        return true;
-      }
-      return false;
-    }
-    
-    /***********************************
-     * Redraw & Main Loop Setup
      ***********************************/
     function redrawBoard() {
       drawBoard();
@@ -1100,19 +2119,16 @@
     function startGame() {
       hideAllScreens();
       gameState = "playing";
-      // Reset board to new configuration:
+      // Reset board for new configuration:
       board = new Array(24).fill(null);
-      // White’s pieces on points 1, 12, 17, 19 (indices 0, 11, 16, 18)
       board[0]  = { owner: 'w', count: 2 };
       board[11] = { owner: 'w', count: 5 };
       board[16] = { owner: 'w', count: 3 };
       board[18] = { owner: 'w', count: 5 };
-      // Black’s pieces on points 24, 13, 8, 6 (indices 23, 12, 7, 5)
       board[23] = { owner: 'b', count: 2 };
       board[12] = { owner: 'b', count: 5 };
       board[7]  = { owner: 'b', count: 3 };
       board[5]  = { owner: 'b', count: 5 };
-      
       bar = { w: 0, b: 0 };
       borneOff = { w: 0, b: 0 };
       currentDice = [];
@@ -1121,6 +2137,7 @@
       redrawBoard();
       if (currentTurn === playerColor) {
         rollBtn.style.display = "block";
+        rollBtn.disabled = false;
       } else {
         rollBtn.style.display = "none";
         aiTurn();
