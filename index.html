@@ -19,9 +19,9 @@
       flex-direction: column; text-align: center;
       z-index: 5;
     }
-    /* Overlay for no legal move */
+    /* "No Legal Move" Overlay */
     #noLegalMoveOverlay { font-size: 48px; color: red; }
-    /* Overlay for custom roll (testing) */
+    /* Custom Roll Overlay (Testing) */
     #customRollOverlay { font-size: 20px; }
     button { font-size: 18px; margin: 10px; padding: 10px 20px; cursor: pointer; }
     input { font-size: 18px; margin: 5px; padding: 5px; width: 50px; text-align: center; }
@@ -142,7 +142,7 @@
     /* Invisible numbering:
          Bottom row (right-to‑left): points 1–12
          Top row (left-to‑right): points 13–24
-       Movement:
+         Movement:
          • White moves from point 1 → 24 (by adding the die)
          • Black moves from point 24 → 1 (by subtracting the die)
     */
@@ -228,7 +228,7 @@
       if (!currentDice.length && currentTurn === playerColor) {
         currentDice = rollDice();
         drawDiceOnCanvas();
-        // Check if at least one legal move exists
+        // If there are dice and no legal moves, clear dice and show overlay.
         if (currentDice.length > 0 && !hasLegalMoves()) {
           currentDice = [];
           showNoLegalMove();
@@ -271,7 +271,7 @@
         ctx.fillRect(0, 0, WIDTH, HEIGHT);
         ctx.fillStyle = "#006400";
         ctx.fillRect(boardMargin, boardTop, boardWidth, boardHeight);
-        // Top row: points 13–24 (drawn left-to-right) → Black's territory.
+        // Top row: points 13–24 (left-to-right) → Black's territory.
         for (let p = 13; p <= 24; p++) {
           let idx = p - 1;
           let x = boardMargin + (p - 13) * pointWidth;
@@ -280,7 +280,7 @@
           let color = (p % 2 === 0) ? "#deb887" : "#d2b48c";
           drawTriangle(tri.x, tri.y, tri.width, tri.height, tri.direction, color);
         }
-        // Bottom row: points 1–12 (drawn right-to-left) → White's territory.
+        // Bottom row: points 1–12 (right-to-left) → White's territory.
         for (let p = 1; p <= 12; p++) {
           let pos = 12 - p;
           let x = boardMargin + pos * pointWidth;
@@ -367,9 +367,11 @@
           let spacing = Math.min(tri.width, tri.height) / 2.2;
           for (let j = 0; j < board[i].count; j++) {
             let centerY;
-            // For Black (top row, indices 12-23) stack from top; White (bottom row, indices 0-11) stack from bottom.
-            if (i >= 12) { centerY = tri.y + (j + 0.5) * spacing; }
-            else { centerY = tri.y + tri.height - (j + 0.5) * spacing; }
+            if (i >= 12) { // Black (top row) stacks from top.
+              centerY = tri.y + (j + 0.5) * spacing;
+            } else { // White (bottom row) stacks from bottom.
+              centerY = tri.y + tri.height - (j + 0.5) * spacing;
+            }
             ctx.beginPath();
             ctx.arc(centerX, centerY, spacing * 0.8, 0, 2 * Math.PI);
             ctx.fillStyle = board[i].owner === 'w' ? "#fff" : "#000";
@@ -546,12 +548,12 @@
             setTimeout(() => {
               makeMove(move);
               redrawGame();
-              // Check if any legal moves remain with leftover dice.
               if (currentDice.length > 0 && !hasLegalMoves()) {
                 currentDice = [];
                 showNoLegalMove();
                 return;
               }
+              if (currentDice.length === 0) { endTurn(); }
             }, humanDelay);
           }
           return;
@@ -579,6 +581,7 @@
                 showNoLegalMove();
                 return;
               }
+              if (currentDice.length === 0) { endTurn(); }
             }, humanDelay);
           } else { selectedPoint = null; legalMoves = []; }
         }
@@ -635,7 +638,6 @@
       aiThinking = true;
       let delay = getAIDelay();
       setTimeout(() => {
-        // Roll dice if needed.
         if (currentDice.length === 0) {
           currentDice = rollDice();
           drawDiceOnCanvas();
