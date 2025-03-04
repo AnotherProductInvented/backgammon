@@ -45,9 +45,9 @@
     <h2>How to Play</h2>
     <p>
       Using invisible numbering:<br>
-      • Black’s side: bottom row (points 1–12); Black moves rightward (increasing points).<br>
-      • White’s side: top row (points 13–24); White moves leftward (decreasing points).<br>
-      Bear off: Black when all checkers are in points 1–6; White when all are in points 19–24.<br>
+      • Bottom row (right‑to‑left): points 1–12; Top row (left‑to‑right): points 13–24.<br>
+      • **White** moves from 1 to 24 (adds the die) and bears off only when all its checkers are in points 19–24.<br>
+      • **Black** moves from 24 to 1 (subtracts the die) and bears off only when all its checkers are in points 1–6.<br>
       A hit checker goes to the bar and re‑enters into the opponent’s home board.
     </p>
     <p>Press [M] to return.</p>
@@ -106,6 +106,7 @@
           boardWidth = WIDTH - 2 * boardMargin, pointWidth = boardWidth / 12;
 
     let gameState = "menu", playerColor = null, difficulty = null,
+        // **White** moves from 1 to 24 (add die) and **Black** from 24 to 1 (subtract die).
         currentTurn = "w", selectedPoint = null, legalMoves = [],
         currentDice = [], aiThinking = false,
         borneOff = { w: 0, b: 0 },
@@ -123,20 +124,20 @@
         board.fill(null);
         borneOff = { w: 0, b: 0 };
         bar = { w: 0, b: 0 };
-        // Standard starting positions:
-        // White on top row (points 13–24):
-        board[23] = { owner: 'w', count: 2 };  // point 24
-        board[12] = { owner: 'w', count: 5 };  // point 13
-        board[7]  = { owner: 'w', count: 3 };  // point 8
-        board[5]  = { owner: 'w', count: 5 };  // point 6
-        // Black on bottom row (points 1–12):
-        board[0]  = { owner: 'b', count: 2 };  // point 1
-        board[11] = { owner: 'b', count: 5 };  // point 12
-        board[16] = { owner: 'b', count: 3 };  // point 17
-        board[18] = { owner: 'b', count: 5 };  // point 19
+        // Starting positions (swapped from standard):
+        // **White** (moves upward from 1 → 24): use Black’s traditional positions.
+        board[0]  = { owner: 'w', count: 2 };   // point 1
+        board[11] = { owner: 'w', count: 5 };   // point 12
+        board[16] = { owner: 'w', count: 3 };   // point 17
+        board[18] = { owner: 'w', count: 5 };   // point 19
+        // **Black** (moves downward from 24 → 1): use White’s traditional positions.
+        board[23] = { owner: 'b', count: 2 };   // point 24
+        board[12] = { owner: 'b', count: 5 };   // point 13
+        board[7]  = { owner: 'b', count: 3 };   // point 8
+        board[5]  = { owner: 'b', count: 5 };   // point 6
         currentTurn = "w"; currentDice = [];
         selectedPoint = null; legalMoves = [];
-      } catch(err) { logBug("initBoard",err); }
+      } catch(err) { logBug("initBoard", err); }
     }
 
     /********** Dice Functions **********/
@@ -145,20 +146,20 @@
         const d1 = Math.floor(Math.random()*6)+1,
               d2 = Math.floor(Math.random()*6)+1;
         return d1===d2 ? [d1,d1,d1,d1] : [d1,d2];
-      } catch(err) { logBug("rollDice",err); return []; }
+      } catch(err) { logBug("rollDice", err); return []; }
     }
     function drawDiceOnCanvas() {
       diceCtx.clearRect(0,0,diceCanvas.width,diceCanvas.height);
       if (!currentDice.length) return;
       const diceToShow = currentDice.slice(0,2),
             diceSize = 60, spacing = 10;
-      diceToShow.forEach((d,i) => drawDieOnCanvas(diceCtx, i*(diceSize+spacing),0,diceSize,d));
+      diceToShow.forEach((d,i) => drawDieOnCanvas(diceCtx, i*(diceSize+spacing), 0, diceSize, d));
     }
-    function drawDieOnCanvas(ctx,x,y,size,value) {
+    function drawDieOnCanvas(ctx, x, y, size, value) {
       ctx.fillStyle="#fff"; ctx.fillRect(x,y,size,size);
       ctx.strokeStyle="#000"; ctx.strokeRect(x,y,size,size);
       ctx.fillStyle="#000";
-      const dotRadius = size/10, cx=x+size/2, cy=y+size/2;
+      const dotRadius = size/10, cx = x+size/2, cy = y+size/2;
       const positions = {
         tl: { x: x+size*0.25, y: y+size*0.25 },
         tr: { x: x+size*0.75, y: y+size*0.25 },
@@ -193,76 +194,76 @@
         ctx.clearRect(0,0,WIDTH,HEIGHT);
         ctx.fillStyle="#f5f5f5"; ctx.fillRect(0,0,WIDTH,HEIGHT);
         ctx.fillStyle="#006400"; ctx.fillRect(boardMargin, boardTop, boardWidth, boardHeight);
-        // Top row: points 13–24 (drawn left-to-right) [White’s side]
+        // Top row: points 13–24 (drawn left-to-right) → Black's territory.
         for(let p=13; p<=24; p++){
           let idx = p-1;
           let x = boardMargin + (p-13)*pointWidth;
           let y = boardTop;
           let tri = { x, y, width: pointWidth, height: boardHeight/2, direction:"down" };
           let color = (p%2===0) ? "#deb887" : "#d2b48c";
-          drawTriangle(tri.x,tri.y,tri.width,tri.height,tri.direction,color);
+          drawTriangle(tri.x, tri.y, tri.width, tri.height, tri.direction, color);
         }
-        // Bottom row: points 1–12 (drawn right-to-left) [Black’s side]
+        // Bottom row: points 1–12 (drawn right-to-left) → White's territory.
         for(let p=1; p<=12; p++){
-          let pos = 12 - p;  // so point 1 appears at rightmost.
+          let pos = 12 - p;  // so point 1 is at rightmost.
           let x = boardMargin + pos*pointWidth;
           let y = boardTop + boardHeight/2;
           let tri = { x, y, width: pointWidth, height: boardHeight/2, direction:"up" };
           let color = (p%2===0) ? "#deb887" : "#d2b48c";
-          drawTriangle(tri.x,tri.y,tri.width,tri.height,tri.direction,color);
+          drawTriangle(tri.x, tri.y, tri.width, tri.height, tri.direction, color);
         }
         drawBorneOff();
-      } catch(err){ logBug("drawBoard",err); }
+      } catch(err){ logBug("drawBoard", err); }
     }
-    function drawTriangle(x,y,width,height,direction,color){
+    function drawTriangle(x, y, width, height, direction, color){
       try{
         ctx.fillStyle = color;
         ctx.beginPath();
         if(direction==="up"){
-          ctx.moveTo(x,y+height);
-          ctx.lineTo(x+width/2,y);
-          ctx.lineTo(x+width,y+height);
-        } else { // "down"
-          ctx.moveTo(x,y);
-          ctx.lineTo(x+width/2,y+height);
-          ctx.lineTo(x+width,y);
+          ctx.moveTo(x, y+height);
+          ctx.lineTo(x+width/2, y);
+          ctx.lineTo(x+width, y+height);
+        } else {
+          ctx.moveTo(x, y);
+          ctx.lineTo(x+width/2, y+height);
+          ctx.lineTo(x+width, y);
         }
         ctx.closePath(); ctx.fill(); ctx.strokeStyle="#000"; ctx.stroke();
-      } catch(err){ logBug("drawTriangle",err); }
+      } catch(err){ logBug("drawTriangle", err); }
     }
-    // Get triangle coordinates from board index.
+    // Map board index to triangle coordinates.
     function getTriangleCoordinates(idx){
-      let x,y,width=pointWidth,height;
+      let x, y, width = pointWidth, height;
       if(idx>=12 && idx<=23){
         // Top row: points 13–24.
-        let p = idx+1; // p: 13-24.
+        let p = idx + 1;
         x = boardMargin + (p-13)*pointWidth;
         y = boardTop; height = boardHeight/2;
-        return { x,y,width,height, direction:"down" };
+        return { x, y, width, height, direction:"down" };
       } else if(idx>=0 && idx<=11){
         // Bottom row: points 1–12 (drawn reversed).
-        let p = idx+1;
+        let p = idx + 1;
         let pos = 12 - p;
         x = boardMargin + pos*pointWidth;
         y = boardTop + boardHeight/2; height = boardHeight/2;
-        return { x,y,width,height, direction:"up" };
+        return { x, y, width, height, direction:"up" };
       } else return null;
     }
 
     /********** Borne-off Drawing **********/
     function drawBorneOff(){
       const pieceRadius = 20;
-      // White borne-off: drawn in top right.
-      for(let i=0; i<borneOff.w; i++){
-        let x = WIDTH - 50, y = boardTop + 20 + i*(pieceRadius*2.2);
-        ctx.beginPath(); ctx.arc(x,y,pieceRadius,0,2*Math.PI);
-        ctx.fillStyle="#fff"; ctx.fill(); ctx.strokeStyle="#000"; ctx.stroke();
-      }
-      // Black borne-off: drawn in bottom left.
+      // Black borne-off: drawn in top right (their destination).
       for(let i=0; i<borneOff.b; i++){
-        let x = boardMargin + 50, y = boardTop + boardHeight - 50 - i*(pieceRadius*2.2);
-        ctx.beginPath(); ctx.arc(x,y,pieceRadius,0,2*Math.PI);
+        let x = WIDTH - 50, y = boardTop + 20 + i*(pieceRadius*2.2);
+        ctx.beginPath(); ctx.arc(x, y, pieceRadius, 0, 2*Math.PI);
         ctx.fillStyle="#000"; ctx.fill(); ctx.strokeStyle="#000"; ctx.stroke();
+      }
+      // White borne-off: drawn in bottom left.
+      for(let i=0; i<borneOff.w; i++){
+        let x = boardMargin + 50, y = boardTop + boardHeight - 50 - i*(pieceRadius*2.2);
+        ctx.beginPath(); ctx.arc(x, y, pieceRadius, 0, 2*Math.PI);
+        ctx.fillStyle="#fff"; ctx.fill(); ctx.strokeStyle="#000"; ctx.stroke();
       }
     }
 
@@ -274,26 +275,24 @@
           if(!board[i]) continue;
           let tri = getTriangleCoordinates(i);
           let centerX = tri.x + tri.width/2;
-          let spacing = Math.min(tri.width,tri.height)/2.2;
+          let spacing = Math.min(tri.width, tri.height)/2.2;
           for(let j=0; j<board[i].count; j++){
             let centerY;
-            if(i>=12) { // Top row (white): stack from top.
-              centerY = tri.y + (j+0.5)*spacing;
-            } else { // Bottom row (black): stack from bottom.
-              centerY = tri.y + tri.height - (j+0.5)*spacing;
-            }
+            // Black pieces (on top row, indices 12-23) stack from top.
+            // White pieces (on bottom row, indices 0-11) stack from bottom.
+            if(i>=12) { centerY = tri.y + (j+0.5)*spacing; }
+            else { centerY = tri.y + tri.height - (j+0.5)*spacing; }
             ctx.beginPath();
             ctx.arc(centerX, centerY, spacing*0.8, 0, 2*Math.PI);
-            ctx.fillStyle = (board[i].owner==='w') ? "#fff" : "#000";
+            ctx.fillStyle = board[i].owner==='w' ? "#fff" : "#000";
             ctx.fill(); ctx.strokeStyle="#000"; ctx.stroke();
           }
-          // Draw counter count (if >5) in the middle of the triangle.
           if(board[i].count > 5){
             ctx.fillStyle="red";
             ctx.fillText(board[i].count, centerX, tri.y + tri.height/2);
           }
         }
-      } catch(err){ logBug("drawPieces",err); }
+      } catch(err){ logBug("drawPieces", err); }
     }
 
     /********** Highlight Legal Moves **********/
@@ -306,15 +305,12 @@
         }
         legalMoves.forEach(move => {
           if(move.bearOff){
-            // For white: borne-off area in top right; for black: bottom left.
-            let x,y, rectW=60, rectH=60;
-            if(currentTurn==='w'){
-              x = WIDTH - rectW - 20; y = boardTop + 20;
-            } else {
-              x = boardMargin + 20; y = boardTop + boardHeight - rectH - 20;
-            }
+            let x, y, rectW = 60, rectH = 60;
+            // For white, bear off area is bottom left; for black, top right.
+            if(currentTurn==='w'){ x = boardMargin + 20; y = boardTop + boardHeight - rectH - 20; }
+            else { x = WIDTH - rectW - 20; y = boardTop + 20; }
             ctx.fillStyle = "rgba(255,255,0,0.5)";
-            ctx.fillRect(x,y,rectW,rectH);
+            ctx.fillRect(x, y, rectW, rectH);
           } else {
             let destCoords = getTriangleCoordinates(move.to);
             if(destCoords){
@@ -327,16 +323,14 @@
     }
 
     /********** Move Logic **********/
-    // New directions:
-    // White (top row): moves by subtracting die (leftward).
-    // Black (bottom row): moves by adding die (rightward).
+    // **White** moves from 1 → 24 (add die); **Black** moves from 24 → 1 (subtract die).
     function canBearOff(color){
       let inHome = true;
       for(let i=0; i<24; i++){
         if(board[i] && board[i].owner===color){
           if(color==='w'){
             // White's home: points 19-24 (indices 18-23).
-            if(i < 18 || i > 23) inHome = false;
+            if(i < 18) inHome = false;
           }
           if(color==='b'){
             // Black's home: points 1-6 (indices 0-5).
@@ -353,28 +347,26 @@
       for(let die of currentDice){
         let dest;
         if(currentTurn==='w'){
-          dest = pointIndex - die;
-          // Bear off if destination falls below white's board (must be in home board first).
-          if(dest < 12 && canBearOff('w')){
-            moves.push({from: pointIndex, to: -1, die, bearOff:true});
-            continue;
-          }
-          if(dest < 12 || dest > 23) continue; // must remain on top row.
-        } else {
           dest = pointIndex + die;
-          // Bear off if destination exceeds black's board.
-          if(dest > 11 && canBearOff('b')){
-            moves.push({from: pointIndex, to: 24, die, bearOff:true});
+          if(dest > 23 && canBearOff('w')){
+            moves.push({ from: pointIndex, to: 24, die, bearOff:true });
             continue;
           }
-          if(dest < 0 || dest > 11) continue; // must remain on bottom row.
+          if(dest < 0 || dest > 23) continue;
+        } else { // Black moves by subtracting.
+          dest = pointIndex - die;
+          if(dest < 0 && canBearOff('b')){
+            moves.push({ from: pointIndex, to: -1, die, bearOff:true });
+            continue;
+          }
+          if(dest < 0 || dest > 23) continue;
         }
         if(!board[dest]){
-          moves.push({from: pointIndex, to: dest, die});
+          moves.push({ from: pointIndex, to: dest, die });
         } else if(board[dest].owner===currentTurn){
-          moves.push({from: pointIndex, to: dest, die});
+          moves.push({ from: pointIndex, to: dest, die });
         } else if(board[dest].count===1){
-          moves.push({from: pointIndex, to: dest, die, hit:true});
+          moves.push({ from: pointIndex, to: dest, die, hit:true });
         }
       }
       return moves;
@@ -385,19 +377,19 @@
       for(let die of currentDice){
         let dest;
         if(currentTurn==='w'){
-          // White re-enters into opponent’s home: bottom row points 1-6 (indices 0-5).
-          dest = die - 1; // die=1->index0, die=6->index5.
+          // White re-enters into Black's home: points 1-6 (indices 0-5).
+          dest = die - 1;
         } else {
-          // Black re-enters into opponent’s home: top row points 19-24 (indices 18-23).
-          dest = 24 - die; // die=1->index23, die=6->index18.
+          // Black re-enters into White's home: points 19-24 (indices 18-23).
+          dest = 24 - die;
         }
         if(dest < 0 || dest > 23) continue;
         if(!board[dest]){
-          moves.push({from:"bar", to: dest, die});
+          moves.push({ from:"bar", to: dest, die });
         } else if(board[dest].owner===currentTurn){
-          moves.push({from:"bar", to: dest, die});
+          moves.push({ from:"bar", to: dest, die });
         } else if(board[dest].count===1){
-          moves.push({from:"bar", to: dest, die, hit:true});
+          moves.push({ from:"bar", to: dest, die, hit:true });
         }
       }
       return moves;
@@ -410,7 +402,7 @@
           if(board[move.from]){
             board[move.from].count--;
             if(board[move.from].count===0) board[move.from]=null;
-          } else { logBug("makeMove","No checker at source "+move.from); }
+          } else { logBug("makeMove","No checker at "+move.from); }
         }
         if(move.bearOff){
           borneOff[currentTurn]++;
@@ -454,12 +446,12 @@
       try {
         const rect = boardCanvas.getBoundingClientRect();
         const mx = e.clientX - rect.left, my = e.clientY - rect.top;
-        let clicked = getPointFromCoordinates(mx,my);
+        let clicked = getPointFromCoordinates(mx, my);
         if(bar[currentTurn] > 0){
           let reEntry = getLegalMovesFromBar();
           if(!reEntry.length) return;
           selectedPoint = "bar"; legalMoves = reEntry;
-          let move = reEntry.find(m=> m.to===clicked);
+          let move = reEntry.find(m => m.to===clicked);
           if(move){
             redrawGame();
             setTimeout(()=>{
@@ -491,9 +483,9 @@
           } else { selectedPoint = null; legalMoves = []; }
         }
         redrawGame();
-      } catch(err){ logBug("boardCanvas mousedown",err); }
+      } catch(err){ logBug("boardCanvas mousedown", err); }
     });
-    function getPointFromCoordinates(x,y){
+    function getPointFromCoordinates(x, y){
       try{
         if(y<boardTop || y>boardTop+boardHeight) return null;
         let pt;
@@ -555,16 +547,16 @@
             setTimeout(()=>{
               makeMove(move);
               redrawGame();
-              if(currentDice.length) setTimeout(aiMakeMove,delay);
+              if(currentDice.length) setTimeout(aiMakeMove, delay);
               else { aiThinking=false; currentTurn = (currentTurn==='w')?'b':'w';
                 if(currentTurn===playerColor) rollDiceBtn.style.display="block";
-                else setTimeout(aiTurn,delay);
+                else setTimeout(aiTurn, delay);
               }
-            },delay);
+            }, delay);
           } else {
             aiThinking=false; currentTurn = (currentTurn==='w')?'b':'w';
             if(currentTurn===playerColor) rollDiceBtn.style.display="block";
-            else setTimeout(aiTurn,delay);
+            else setTimeout(aiTurn, delay);
           }
         }
         aiMakeMove();
