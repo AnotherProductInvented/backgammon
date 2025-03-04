@@ -135,7 +135,7 @@
     /* Invisible numbering:
          Bottom row (right-to‑left): points 1–12
          Top row (left-to‑right): points 13–24
-       Movement:
+         Movement:
          • White moves from 1 → 24 (by adding the die)
          • Black moves from 24 → 1 (by subtracting the die)
     */
@@ -218,8 +218,8 @@
       if(!currentDice.length && currentTurn===playerColor){
         currentDice = rollDice();
         drawDiceOnCanvas();
-        // Check if there is at least one legal move across the dice.
-        if(!hasLegalMoves()){
+        // Only show overlay if there are dice remaining and no legal moves.
+        if(currentDice.length > 0 && !hasLegalMoves()){
           showNoLegalMove();
           return;
         }
@@ -242,7 +242,7 @@
         currentDice = die1===die2 ? [die1,die1,die1,die1] : [die1,die2];
         drawDiceOnCanvas();
         customRollOverlay.style.display = "none";
-        if(!hasLegalMoves()){
+        if(currentDice.length > 0 && !hasLegalMoves()){
           showNoLegalMove();
           return;
         }
@@ -383,8 +383,8 @@
     }
 
     /* --- Move Logic --- */
-    // WHITE moves from 1 → 24 (add die)
-    // BLACK moves from 24 → 1 (subtract die)
+    // WHITE moves from 1 → 24 (by adding the die)
+    // BLACK moves from 24 → 1 (by subtracting the die)
     function canBearOff(color){
       let inHome = true;
       for(let i=0; i<24; i++){
@@ -518,7 +518,9 @@
             setTimeout(()=>{
               makeMove(move);
               redrawGame();
-              if(!hasLegalMoves()){
+              // After a move, if there are still dice but no legal moves, then clear the dice and end turn.
+              if(currentDice.length > 0 && !hasLegalMoves()){
+                currentDice = [];
                 showNoLegalMove();
                 return;
               }
@@ -542,7 +544,8 @@
             setTimeout(()=>{
               makeMove(move);
               redrawGame();
-              if(!hasLegalMoves()){
+              if(currentDice.length > 0 && !hasLegalMoves()){
+                currentDice = [];
                 showNoLegalMove();
                 return;
               }
@@ -625,6 +628,11 @@
             setTimeout(()=>{
               makeMove(move);
               redrawGame();
+              if(currentDice.length > 0 && !hasLegalMoves()){
+                currentDice = [];
+                showNoLegalMove();
+                return;
+              }
               if(currentDice.length) setTimeout(aiMakeMove, delay);
               else { aiThinking=false; currentTurn = (currentTurn==='w')?'b':'w';
                 if(currentTurn===playerColor) rollDiceBtn.style.display="block";
