@@ -460,7 +460,7 @@
         }
       }
       
-      // Draw dice: if both dice exist, show both; if only one remains, show one.
+      // Draw dice: if both dice exist, show both; if only one remains, show just that one.
       function drawDice(dice) {
         diceCtx.clearRect(0, 0, diceCanvas.width, diceCanvas.height);
         const dieSize = 100;
@@ -741,10 +741,13 @@
             makeMove(move);
             redrawBoard();
             drawBarPieces();
-            if (currentDice.length > 0 && !hasLegalMoves()) {
-              currentDice = [];
-              endTurn();
-            }
+            // Check for turn end after a human move
+            setTimeout(() => {
+              if (currentTurn === playerColor && currentDice.length > 0 && !hasLegalMoves()) {
+                currentDice = [];
+                endTurn();
+              }
+            }, 500);
             return;
           }
           return;
@@ -770,10 +773,13 @@
         redrawBoard();
         if (currentDice.length) drawDice(currentDice);
         drawBarPieces();
-        if (currentDice.length > 0 && !hasLegalMoves()) {
-          currentDice = [];
-          endTurn();
-        }
+        // Automatic turn-end check after a move.
+        setTimeout(() => {
+          if (currentTurn === playerColor && currentDice.length > 0 && !hasLegalMoves()) {
+            currentDice = [];
+            endTurn();
+          }
+        }, 500);
       });
 
       /*==============================
