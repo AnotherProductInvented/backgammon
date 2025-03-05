@@ -110,10 +110,10 @@
     <h2>How to Play</h2>
     <p>
       <strong>Rolling the Dice</strong> – Each player rolls two dice (animated) and moves their checkers.<br>
-      <strong>Moving Checkers</strong> – White moves by subtracting the die (moving downward) so its home board is points 1–6 (bottom), while Black moves by adding the die (moving upward) so its home board is points 19–24 (top).<br>
+      <strong>Moving Checkers</strong> – White now moves upward (from lower numbers toward 24) and Black moves downward (from higher numbers toward 1).<br>
       <strong>Landing on a Point</strong> – You may land on an open point or one occupied by your own checkers. Landing on a single opponent checker sends it to the bar.<br>
-      <strong>Re-entering from the Bar</strong> – If you have checkers on the bar, you must re‑enter them.<br>
-      <strong>Bearing Off</strong> – You can bear off only when all your checkers are in your home board.<br>
+      <strong>Re‑entering from the Bar</strong> – If you have checkers on the bar, you must re‑enter them into the opponent’s home board.<br>
+      <strong>Bearing Off</strong> – You can bear off only when all your checkers are in your home board (White: points 19–24; Black: points 1–6).<br>
       <strong>Winning</strong> – The first player to bear off all their checkers wins.<br>
       Press [M] to return to the main menu.
     </p>
@@ -152,7 +152,6 @@
   </div>
 
   <script>
-    // Wrap everything in an IIFE and wait for DOMContentLoaded.
     document.addEventListener("DOMContentLoaded", function(){
       "use strict";
       
@@ -188,7 +187,7 @@
       const HEIGHT = boardCanvas.height; // 800
       const boardMargin = 20;
       const barWidth = 40;
-      const bearOffHeight = 100; // 100px at top and bottom for bear-off zones
+      const bearOffHeight = 100; // zones at top and bottom for bearing off
       const boardTop = bearOffHeight;
       const boardHeight = HEIGHT - 2 * bearOffHeight;
       const boardWidth = WIDTH - 2 * boardMargin - barWidth;
@@ -198,16 +197,19 @@
       const blackColor = "#000";
 
       // Board representation (points 1..24)
+      // Note: With the new movement directions:
+      // White checkers start on points 1,12,17,19 and move upward (toward 24),
+      // Black checkers start on points 24,13,8,6 and move downward (toward 1).
       let board = new Array(25).fill(null);
-      board[24] = { owner: 'w', count: 2 };
-      board[13] = { owner: 'w', count: 5 };
-      board[8]  = { owner: 'w', count: 3 };
-      board[6]  = { owner: 'w', count: 5 };
+      board[1]  = { owner: 'w', count: 2 };
+      board[12] = { owner: 'w', count: 5 };
+      board[17] = { owner: 'w', count: 3 };
+      board[19] = { owner: 'w', count: 5 };
 
-      board[1]  = { owner: 'b', count: 2 };
-      board[12] = { owner: 'b', count: 5 };
-      board[17] = { owner: 'b', count: 3 };
-      board[19] = { owner: 'b', count: 5 };
+      board[24] = { owner: 'b', count: 2 };
+      board[13] = { owner: 'b', count: 5 };
+      board[8]  = { owner: 'b', count: 3 };
+      board[6]  = { owner: 'b', count: 5 };
 
       let bar = { w: 0, b: 0 };
       let borneOff = { w: 0, b: 0 };
@@ -216,6 +218,8 @@
       let legalMoves = [];
       let currentDice = [];
 
+      // Set whose turn it is and which color the player controls.
+      // (You might want to switch the initial turn if desired.)
       let currentTurn = "w";
       let playerColor = "w";
       const diceAnimationDuration = 1000;
@@ -264,7 +268,7 @@
         gameOverScreen.style.display = "flex";
       }
 
-      // Set overlay button event listeners with logs.
+      // Overlay button event listeners.
       document.getElementById("newGameBtn").addEventListener("click", () => {
         console.log("New Game button clicked");
         showColorChoice();
@@ -309,6 +313,7 @@
       ==============================*/
       function getCoordinatesForPoint(p) {
         let x, y, width = pointWidth, height = boardHeight / 2;
+        // The board is still drawn with points 1–12 along one half and 13–24 on the other.
         if (p >= 1 && p <= 12) {
           x = boardMargin + (12 - p) * pointWidth;
           y = boardTop + boardHeight / 2;
@@ -459,12 +464,16 @@
         }
       }
       
+      // Updated drawDice now checks for a single remaining die.
       function drawDice(dice) {
         diceCtx.clearRect(0, 0, diceCanvas.width, diceCanvas.height);
         const dieSize = 100;
-        drawDie(20, 25, dieSize, dice[0]);
-        drawDie(130, 25, dieSize, dice[1]);
-        diceResultP.textContent = `Result: ${dice[0]} & ${dice[1]}`;
+        let d1 = dice[0];
+        let d2 = (dice.length > 1) ? dice[1] : dice[0];
+        if (d1 === undefined || d2 === undefined) return;
+        drawDie(20, 25, dieSize, d1);
+        drawDie(130, 25, dieSize, d2);
+        diceResultP.textContent = `Result: ${d1} & ${d2}`;
       }
       
       function drawDie(x, y, size, value) {
@@ -532,28 +541,31 @@
       /*==============================
         Move & AI Functions
       ==============================*/
+      // For the new directions:
+      // - White moves by adding the die value.
+      // - Black moves by subtracting the die value.
       function getLegalMoves(point) {
         let moves = [];
         if (!board[point] || board[point].owner !== currentTurn) return moves;
         currentDice.forEach(die => {
           let dest;
           if (currentTurn === 'w') {
-            dest = point - die;
-            if (dest < 1 && allCheckersInHome('w')) {
-              moves.push({ from: point, to: 0, die, bearOff: true });
-            } else if (dest >= 1) {
+            dest = point + die;
+            if (dest > 24 && allCheckersInHome('w')) {
+              moves.push({ from: point, to: 25, die, bearOff: true });
+            } else if (dest <= 24) {
               if (!board[dest] || board[dest].owner === currentTurn ||
-                  (board[dest].owner !== currentTurn && board[dest].count === 1)) {
+                  (board[dest] && board[dest].owner !== currentTurn && board[dest].count === 1)) {
                 moves.push({ from: point, to: dest, die, hit: (board[dest] && board[dest].owner !== currentTurn && board[dest].count === 1) || false });
               }
             }
           } else {
-            dest = point + die;
-            if (dest > 24 && allCheckersInHome('b')) {
-              moves.push({ from: point, to: 25, die, bearOff: true });
-            } else if (dest <= 24) {
+            dest = point - die;
+            if (dest < 1 && allCheckersInHome('b')) {
+              moves.push({ from: point, to: 0, die, bearOff: true });
+            } else if (dest >= 1) {
               if (!board[dest] || board[dest].owner === currentTurn ||
-                  (board[dest].owner !== currentTurn && board[dest].count === 1)) {
+                  (board[dest] && board[dest].owner !== currentTurn && board[dest].count === 1)) {
                 moves.push({ from: point, to: dest, die, hit: (board[dest] && board[dest].owner !== currentTurn && board[dest].count === 1) || false });
               }
             }
@@ -562,30 +574,32 @@
         return moves;
       }
       
+      // Update re‑entry: With the new directions, white enters on 25‑die and black enters on die.
       function getLegalMovesFromBar() {
         let moves = [];
         if (bar[currentTurn] <= 0) return moves;
         currentDice.forEach(die => {
           let dest;
           if (currentTurn === 'w') {
-            dest = die;
-          } else {
             dest = 25 - die;
+          } else {
+            dest = die;
           }
           if (dest < 1 || dest > 24) return;
           if (!board[dest] || board[dest].owner === currentTurn ||
-              (board[dest].owner !== currentTurn && board[dest].count === 1)) {
+              (board[dest] && board[dest].owner !== currentTurn && board[dest].count === 1)) {
             moves.push({ from: "bar", to: dest, die, hit: (board[dest] && board[dest].owner !== currentTurn && board[dest].count === 1) || false });
           }
         });
         return moves;
       }
       
+      // For bearing off: white's home board is 19–24; black's is 1–6.
       function allCheckersInHome(color) {
         for (let p = 1; p <= 24; p++) {
           if (board[p] && board[p].owner === color) {
-            if (color === 'w' && p > 6) return false;
-            if (color === 'b' && p < 19) return false;
+            if (color === 'w' && p < 19) return false;
+            if (color === 'b' && p > 6) return false;
           }
         }
         return (bar[color] === 0);
@@ -730,6 +744,11 @@
             makeMove(move);
             redrawBoard();
             drawBarPieces();
+            // Check if there are no legal moves left.
+            if (currentDice.length > 0 && !hasLegalMoves()) {
+              currentDice = [];
+              endTurn();
+            }
             return;
           }
           return;
@@ -755,6 +774,11 @@
         redrawBoard();
         if (currentDice.length) drawDice(currentDice);
         drawBarPieces();
+        // End turn if no legal moves remain.
+        if (currentDice.length > 0 && !hasLegalMoves()) {
+          currentDice = [];
+          endTurn();
+        }
       });
 
       /*==============================
@@ -813,16 +837,17 @@
       function startGame() {
         hideAllScreens();
         gameState = "playing";
+        // Reset board with new starting positions.
         board = new Array(25).fill(null);
-        board[24] = { owner: 'w', count: 2 };
-        board[13] = { owner: 'w', count: 5 };
-        board[8]  = { owner: 'w', count: 3 };
-        board[6]  = { owner: 'w', count: 5 };
+        board[1]  = { owner: 'w', count: 2 };
+        board[12] = { owner: 'w', count: 5 };
+        board[17] = { owner: 'w', count: 3 };
+        board[19] = { owner: 'w', count: 5 };
 
-        board[1]  = { owner: 'b', count: 2 };
-        board[12] = { owner: 'b', count: 5 };
-        board[17] = { owner: 'b', count: 3 };
-        board[19] = { owner: 'b', count: 5 };
+        board[24] = { owner: 'b', count: 2 };
+        board[13] = { owner: 'b', count: 5 };
+        board[8]  = { owner: 'b', count: 3 };
+        board[6]  = { owner: 'b', count: 5 };
 
         bar = { w: 0, b: 0 };
         borneOff = { w: 0, b: 0 };
