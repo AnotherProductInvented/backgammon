@@ -196,8 +196,7 @@
       const whiteColor = "#fff";
       const blackColor = "#000";
 
-      // Original board configuration:
-      // White checkers on points 24, 13, 8, 6; Black checkers on points 1, 12, 17, 19.
+      // Standard backgammon starting positions.
       let board = new Array(25).fill(null);
       board[24] = { owner: 'w', count: 2 };
       board[13] = { owner: 'w', count: 5 };
@@ -320,17 +319,6 @@
         return { x, y, width, height };
       }
       
-      function getPointFromCoordinates(x, y) {
-        if (y >= boardTop + boardHeight / 2 && y <= boardTop + boardHeight) {
-          let pos = Math.floor((x - boardMargin) / pointWidth);
-          return 12 - pos;
-        } else if (y >= boardTop && y < boardTop + boardHeight / 2) {
-          let pos = Math.floor((x - boardMargin) / pointWidth);
-          return pos + 13;
-        }
-        return null;
-      }
-      
       function drawBoard() {
         ctx.clearRect(0, 0, WIDTH, HEIGHT);
         // Bear-Off Zones
@@ -399,67 +387,6 @@
         }
       }
       
-      function drawPieces() {
-        for (let p = 1; p <= 24; p++) {
-          if (!board[p]) continue;
-          const coords = getCoordinatesForPoint(p);
-          let centerX = coords.x + coords.width / 2;
-          let spacing = Math.min(coords.width, coords.height) / 3;
-          let centerY;
-          if (p <= 12) {
-            centerY = coords.y + coords.height - (spacing / 2);
-          } else {
-            centerY = coords.y + (spacing / 2);
-          }
-          for (let j = 0; j < board[p].count; j++) {
-            let pieceY = (p <= 12) ? centerY - j * spacing : centerY + j * spacing;
-            drawChecker(centerX, pieceY, 15, board[p].owner);
-          }
-        }
-      }
-      
-      function drawChecker(cx, cy, radius, owner) {
-        ctx.beginPath();
-        ctx.arc(cx, cy, radius, 0, 2 * Math.PI);
-        ctx.fillStyle = (owner === 'w') ? whiteColor : blackColor;
-        ctx.fill();
-        ctx.strokeStyle = "#000";
-        ctx.stroke();
-      }
-      
-      function redrawBoard() {
-        drawBoard();
-        drawPieces();
-        drawBearOffPieces();
-      }
-      
-      function drawBarPieces() {
-        barCtx.clearRect(0, 0, barCanvas.width, barCanvas.height);
-        barCtx.font = "16px sans-serif";
-        barCtx.fillStyle = "#000";
-        barCtx.textAlign = "center";
-        barCtx.fillText("Bar", barCanvas.width / 2, 20);
-        const pieceRadius = 15, spacing = pieceRadius * 2.2;
-        for (let j = 0; j < bar.w; j++) {
-          let cx = barCanvas.width / 2, cy = 40 + j * spacing;
-          barCtx.beginPath();
-          barCtx.arc(cx, cy, pieceRadius, 0, 2 * Math.PI);
-          barCtx.fillStyle = "#fff";
-          barCtx.fill();
-          barCtx.strokeStyle = "#000";
-          barCtx.stroke();
-        }
-        for (let j = 0; j < bar.b; j++) {
-          let cx = barCanvas.width / 2, cy = barCanvas.height - 40 - j * spacing;
-          barCtx.beginPath();
-          barCtx.arc(cx, cy, pieceRadius, 0, 2 * Math.PI);
-          barCtx.fillStyle = "#000";
-          barCtx.fill();
-          barCtx.strokeStyle = "#000";
-          barCtx.stroke();
-        }
-      }
-      
       // Draw dice: if both dice exist, show both; if only one remains, show that one.
       function drawDice(dice) {
         diceCtx.clearRect(0, 0, diceCanvas.width, diceCanvas.height);
@@ -514,7 +441,7 @@
         const interval = setInterval(() => {
           let elapsed = Date.now() - startTime;
           if (elapsed < duration) {
-            const tempDice = rollDiceSimple(); // using our new dice function for consistency
+            const tempDice = rollDiceSimple(); // roll randomly during animation
             drawDice(tempDice);
           } else {
             clearInterval(interval);
@@ -737,8 +664,18 @@
         const rect = boardCanvas.getBoundingClientRect();
         const mx = e.clientX - rect.left;
         const my = e.clientY - rect.top;
-        let p = getPointFromCoordinates(mx, my);
-        if (p === null) return;
+        let p;
+        // Determine point based on where the user clicked.
+        if (my >= boardTop && my < boardTop + boardHeight / 2) {
+          // Top half (points 13-24)
+          let pos = Math.floor((mx - boardMargin) / pointWidth);
+          p = pos + 13;
+        } else if (my >= boardTop + boardHeight / 2 && my <= boardTop + boardHeight) {
+          let pos = Math.floor((mx - boardMargin) / pointWidth);
+          p = 12 - pos;
+        } else {
+          return;
+        }
         if (bar[currentTurn] > 0) {
           let reEntryMoves = getLegalMovesFromBar();
           if (!reEntryMoves.length) return;
@@ -823,15 +760,81 @@
       /*==============================
         Redraw & Main Loop
       ==============================*/
-      function redraw() {
+      // Adjusted drawPieces() so that checkers are aligned based solely on color:
+      // White pieces are drawn from the bottom of the triangle upward (since white moves downward),
+      // while Black pieces are drawn from the top of the triangle downward (since black moves upward).
+      function drawPieces() {
+        for (let p = 1; p <= 24; p++) {
+          if (!board[p]) continue;
+          const coords = getCoordinatesForPoint(p);
+          let centerX = coords.x + coords.width / 2;
+          let spacing = Math.min(coords.width, coords.height) / 3;
+          let centerY;
+          if (board[p].owner === 'w') {
+            // White moves downward – align pieces at the bottom edge.
+            centerY = coords.y + coords.height - spacing / 2;
+            for (let j = 0; j < board[p].count; j++) {
+              let pieceY = centerY - j * spacing;
+              drawChecker(centerX, pieceY, 15, board[p].owner);
+            }
+          } else {
+            // Black moves upward – align pieces at the top edge.
+            centerY = coords.y + spacing / 2;
+            for (let j = 0; j < board[p].count; j++) {
+              let pieceY = centerY + j * spacing;
+              drawChecker(centerX, pieceY, 15, board[p].owner);
+            }
+          }
+        }
+      }
+      
+      function drawChecker(cx, cy, radius, owner) {
+        ctx.beginPath();
+        ctx.arc(cx, cy, radius, 0, 2 * Math.PI);
+        ctx.fillStyle = (owner === 'w') ? whiteColor : blackColor;
+        ctx.fill();
+        ctx.strokeStyle = "#000";
+        ctx.stroke();
+      }
+      
+      function redrawBoard() {
+        drawBoard();
+        drawPieces();
+        drawBearOffPieces();
+      }
+      
+      function drawBarPieces() {
+        barCtx.clearRect(0, 0, barCanvas.width, barCanvas.height);
+        barCtx.font = "16px sans-serif";
+        barCtx.fillStyle = "#000";
+        barCtx.textAlign = "center";
+        barCtx.fillText("Bar", barCanvas.width / 2, 20);
+        const pieceRadius = 15, spacing = pieceRadius * 2.2;
+        for (let j = 0; j < bar.w; j++) {
+          let cx = barCanvas.width / 2, cy = 40 + j * spacing;
+          barCtx.beginPath();
+          barCtx.arc(cx, cy, pieceRadius, 0, 2 * Math.PI);
+          barCtx.fillStyle = "#fff";
+          barCtx.fill();
+          barCtx.strokeStyle = "#000";
+          barCtx.stroke();
+        }
+        for (let j = 0; j < bar.b; j++) {
+          let cx = barCanvas.width / 2, cy = barCanvas.height - 40 - j * spacing;
+          barCtx.beginPath();
+          barCtx.arc(cx, cy, pieceRadius, 0, 2 * Math.PI);
+          barCtx.fillStyle = "#000";
+          barCtx.fill();
+          barCtx.strokeStyle = "#000";
+          barCtx.stroke();
+        }
+      }
+      
+      function mainLoop() {
         redrawBoard();
         highlightLegalOptions();
         if (currentDice.length) drawDice(currentDice);
         drawBarPieces();
-      }
-      
-      function mainLoop() {
-        redraw();
         requestAnimationFrame(mainLoop);
       }
       
@@ -863,6 +866,24 @@
           aiTurn();
         }
       }
+      
+      /*==============================
+        Roll Dice Button – FIX
+      ==============================*/
+      rollBtn.addEventListener("click", () => {
+        if (customDice) {
+          currentDice = customDice.slice();
+          customDice = null;
+          drawDice(currentDice);
+        } else {
+          const finalDice = rollDiceSimple();
+          animateDice(finalDice, diceAnimationDuration, () => {
+            currentDice = finalDice;
+          });
+        }
+        rollBtn.disabled = true;
+        rollBtn.style.display = "none";
+      });
       
       window.addEventListener("load", () => {
         mainLoop();
