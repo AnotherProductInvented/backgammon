@@ -460,7 +460,7 @@
         }
       }
       
-      // Draw dice: if both dice exist, show both; if only one remains, show just that one.
+      // Draw dice: if both dice exist, show both; if only one remains, show that one.
       function drawDice(dice) {
         diceCtx.clearRect(0, 0, diceCanvas.width, diceCanvas.height);
         const dieSize = 100;
@@ -514,7 +514,7 @@
         const interval = setInterval(() => {
           let elapsed = Date.now() - startTime;
           if (elapsed < duration) {
-            const tempDice = [Math.floor(Math.random() * 6) + 1, Math.floor(Math.random() * 6) + 1];
+            const tempDice = rollDiceSimple(); // using our new dice function for consistency
             drawDice(tempDice);
           } else {
             clearInterval(interval);
@@ -524,17 +524,15 @@
         }, 100);
       }
       
-      rollBtn.addEventListener("click", () => {
-        rollBtn.disabled = true;
-        const finalDice = (customDice !== null) ? customDice : rollDiceSimple();
-        animateDice(finalDice, diceAnimationDuration, () => {
-          currentDice = finalDice;
-          console.log("Final dice:", finalDice);
-        });
-      });
-      
+      // Modified rollDiceSimple: if doubles are rolled, return four copies.
       function rollDiceSimple() {
-        return [Math.floor(Math.random() * 6) + 1, Math.floor(Math.random() * 6) + 1];
+        let d1 = Math.floor(Math.random() * 6) + 1;
+        let d2 = Math.floor(Math.random() * 6) + 1;
+        if(d1 === d2){
+          return [d1, d1, d1, d1];
+        } else {
+          return [d1, d2];
+        }
       }
       
       /*==============================
@@ -626,7 +624,7 @@
             }
           }
         }
-        // Remove the die used (note: if both dice have the same value, only one is removed)
+        // Remove one occurrence of the used die (if doubles, others remain)
         let idx = currentDice.indexOf(move.die);
         if (idx !== -1) currentDice.splice(idx, 1);
         selectedPoint = null;
@@ -664,7 +662,6 @@
           makeMove(move);
           redrawBoard();
           drawBarPieces();
-          // AI turn: if no legal moves remain with current dice, end turn.
           if (currentDice.length > 0 && !hasLegalMoves()) {
             currentDice = [];
             endTurn();
@@ -723,10 +720,10 @@
         return false;
       }
       
-      // New helper: check if the current player (human) has any legal moves.
+      // Helper to check if no legal moves remain for the current human player.
       function checkTurnEnd() {
         if (currentDice.length > 0 && !hasLegalMoves()) {
-          console.log("No legal moves remain for current player; ending turn.");
+          console.log("No legal moves remain; ending turn.");
           currentDice = [];
           endTurn();
         }
@@ -778,7 +775,6 @@
         redrawBoard();
         if (currentDice.length) drawDice(currentDice);
         drawBarPieces();
-        // Immediately check if no legal moves remain
         checkTurnEnd();
       });
 
@@ -792,7 +788,12 @@
           alert("Please enter valid dice values (1–6).");
           return;
         }
-        customDice = [d1, d2];
+        // If doubles are entered, set four moves.
+        if(d1 === d2){
+          customDice = [d1, d1, d1, d1];
+        } else {
+          customDice = [d1, d2];
+        }
         console.log("Custom dice set:", customDice);
       });
       document.getElementById("clearCustomDiceBtn").addEventListener("click", () => {
