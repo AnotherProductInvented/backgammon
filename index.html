@@ -778,6 +778,24 @@
       });
 
       /*==============================
+        Highlight Legal Options Function
+      ==============================*/
+      function highlightLegalOptions() {
+        if (!legalMoves || legalMoves.length === 0) return;
+        ctx.save();
+        ctx.strokeStyle = "red";
+        ctx.lineWidth = 4;
+        legalMoves.forEach(move => {
+          // Only highlight moves that target a board point (1–24)
+          if (typeof move.to === 'number' && move.to >= 1 && move.to <= 24) {
+            let coords = getCoordinatesForPoint(move.to);
+            ctx.strokeRect(coords.x, coords.y, coords.width, coords.height);
+          }
+        });
+        ctx.restore();
+      }
+      
+      /*==============================
         Redraw & Main Loop
       ==============================*/
       function redraw() {
