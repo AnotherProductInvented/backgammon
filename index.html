@@ -197,7 +197,7 @@
       const blackColor = "#000";
 
       // Board representation (points 1..24)
-      // Note: With the new movement directions:
+      // With the new movement directions:
       // White checkers start on points 1,12,17,19 and move upward (toward 24),
       // Black checkers start on points 24,13,8,6 and move downward (toward 1).
       let board = new Array(25).fill(null);
@@ -218,8 +218,7 @@
       let legalMoves = [];
       let currentDice = [];
 
-      // Set whose turn it is and which color the player controls.
-      // (You might want to switch the initial turn if desired.)
+      // Turn and player settings.
       let currentTurn = "w";
       let playerColor = "w";
       const diceAnimationDuration = 1000;
@@ -313,7 +312,7 @@
       ==============================*/
       function getCoordinatesForPoint(p) {
         let x, y, width = pointWidth, height = boardHeight / 2;
-        // The board is still drawn with points 1–12 along one half and 13–24 on the other.
+        // The board is drawn with points 1–12 on one half and 13–24 on the other.
         if (p >= 1 && p <= 12) {
           x = boardMargin + (12 - p) * pointWidth;
           y = boardTop + boardHeight / 2;
@@ -464,16 +463,19 @@
         }
       }
       
-      // Updated drawDice now checks for a single remaining die.
+      // Updated drawDice: if only one die remains, show just one.
       function drawDice(dice) {
         diceCtx.clearRect(0, 0, diceCanvas.width, diceCanvas.height);
         const dieSize = 100;
-        let d1 = dice[0];
-        let d2 = (dice.length > 1) ? dice[1] : dice[0];
-        if (d1 === undefined || d2 === undefined) return;
-        drawDie(20, 25, dieSize, d1);
-        drawDie(130, 25, dieSize, d2);
-        diceResultP.textContent = `Result: ${d1} & ${d2}`;
+        if (dice.length === 0) return;
+        if (dice.length === 1) {
+          drawDie(20, 25, dieSize, dice[0]);
+          diceResultP.textContent = `Result: ${dice[0]}`;
+        } else {
+          drawDie(20, 25, dieSize, dice[0]);
+          drawDie(130, 25, dieSize, dice[1]);
+          diceResultP.textContent = `Result: ${dice[0]} & ${dice[1]}`;
+        }
       }
       
       function drawDie(x, y, size, value) {
@@ -541,9 +543,7 @@
       /*==============================
         Move & AI Functions
       ==============================*/
-      // For the new directions:
-      // - White moves by adding the die value.
-      // - Black moves by subtracting the die value.
+      // White moves by adding the die; Black moves by subtracting.
       function getLegalMoves(point) {
         let moves = [];
         if (!board[point] || board[point].owner !== currentTurn) return moves;
@@ -574,7 +574,7 @@
         return moves;
       }
       
-      // Update re‑entry: With the new directions, white enters on 25‑die and black enters on die.
+      // Updated re‑entry: white enters on point (25 - die) and black enters on point (die).
       function getLegalMovesFromBar() {
         let moves = [];
         if (bar[currentTurn] <= 0) return moves;
@@ -744,7 +744,6 @@
             makeMove(move);
             redrawBoard();
             drawBarPieces();
-            // Check if there are no legal moves left.
             if (currentDice.length > 0 && !hasLegalMoves()) {
               currentDice = [];
               endTurn();
@@ -774,7 +773,6 @@
         redrawBoard();
         if (currentDice.length) drawDice(currentDice);
         drawBarPieces();
-        // End turn if no legal moves remain.
         if (currentDice.length > 0 && !hasLegalMoves()) {
           currentDice = [];
           endTurn();
@@ -810,7 +808,6 @@
         ctx.strokeStyle = "red";
         ctx.lineWidth = 4;
         legalMoves.forEach(move => {
-          // Only highlight moves that target a board point (1–24)
           if (typeof move.to === 'number' && move.to >= 1 && move.to <= 24) {
             let coords = getCoordinatesForPoint(move.to);
             ctx.strokeRect(coords.x, coords.y, coords.width, coords.height);
@@ -837,7 +834,6 @@
       function startGame() {
         hideAllScreens();
         gameState = "playing";
-        // Reset board with new starting positions.
         board = new Array(25).fill(null);
         board[1]  = { owner: 'w', count: 2 };
         board[12] = { owner: 'w', count: 5 };
