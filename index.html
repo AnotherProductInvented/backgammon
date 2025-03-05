@@ -626,6 +626,7 @@
             }
           }
         }
+        // Remove the die used (note: if both dice have the same value, only one is removed)
         let idx = currentDice.indexOf(move.die);
         if (idx !== -1) currentDice.splice(idx, 1);
         selectedPoint = null;
@@ -663,6 +664,7 @@
           makeMove(move);
           redrawBoard();
           drawBarPieces();
+          // AI turn: if no legal moves remain with current dice, end turn.
           if (currentDice.length > 0 && !hasLegalMoves()) {
             currentDice = [];
             endTurn();
@@ -721,6 +723,15 @@
         return false;
       }
       
+      // New helper: check if the current player (human) has any legal moves.
+      function checkTurnEnd() {
+        if (currentDice.length > 0 && !hasLegalMoves()) {
+          console.log("No legal moves remain for current player; ending turn.");
+          currentDice = [];
+          endTurn();
+        }
+      }
+      
       /*==============================
         Human Input Handling
       ==============================*/
@@ -741,13 +752,7 @@
             makeMove(move);
             redrawBoard();
             drawBarPieces();
-            // Check for turn end after a human move
-            setTimeout(() => {
-              if (currentTurn === playerColor && currentDice.length > 0 && !hasLegalMoves()) {
-                currentDice = [];
-                endTurn();
-              }
-            }, 500);
+            checkTurnEnd();
             return;
           }
           return;
@@ -773,13 +778,8 @@
         redrawBoard();
         if (currentDice.length) drawDice(currentDice);
         drawBarPieces();
-        // Automatic turn-end check after a move.
-        setTimeout(() => {
-          if (currentTurn === playerColor && currentDice.length > 0 && !hasLegalMoves()) {
-            currentDice = [];
-            endTurn();
-          }
-        }, 500);
+        // Immediately check if no legal moves remain
+        checkTurnEnd();
       });
 
       /*==============================
