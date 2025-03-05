@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>Backgammon – Fixed Dice and Checker Directions</title>
+  <title>Backgammon – Fixed Dice & Checker Directions</title>
   <style>
     body {
       background: #eee;
@@ -301,15 +301,15 @@
       /*==============================
         Drawing Functions
       ==============================*/
-      // Compute the triangle coordinates for a given point.
+      // Given a point number, return the triangle coordinates.
       function getCoordinatesForPoint(p) {
         let x, y, width = pointWidth, height = boardHeight / 2;
         if (p >= 1 && p <= 12) {
-          // Bottom half (points 1-12): drawn at the bottom of the board.
+          // Bottom half: points 1-12 (drawn on lower half)
           x = boardMargin + (12 - p) * pointWidth;
           y = boardTop + boardHeight / 2;
         } else if (p >= 13 && p <= 24) {
-          // Top half (points 13-24): drawn at the top of the board.
+          // Top half: points 13-24 (drawn on upper half)
           x = boardMargin + (p - 13) * pointWidth;
           y = boardTop;
         }
@@ -343,12 +343,11 @@
         ctx.fillStyle = "#8B4513";
         ctx.fillRect(boardMargin + boardWidth / 2, boardTop, barWidth, boardHeight);
 
-        // Draw triangles for points 1..24.
+        // Draw triangles (points 1..24)
         for (let p = 1; p <= 24; p++) {
           const coords = getCoordinatesForPoint(p);
           let color = (p % 2 === 0) ? "#deb887" : "#d2b48c";
-          // For bottom half (points 1-12) triangles point upward;
-          // for top half (points 13-24) they point downward.
+          // For bottom half (1–12), triangles point upward; for top half (13–24), they point downward.
           let direction = (p <= 12) ? "up" : "down";
           drawTriangle(coords.x, coords.y, coords.width, coords.height, direction, color);
         }
@@ -358,10 +357,12 @@
         ctx.fillStyle = color;
         ctx.beginPath();
         if (direction === "down") {
+          // Downward triangle: base at top (y) and apex at bottom (y+height)
           ctx.moveTo(x, y);
           ctx.lineTo(x + width / 2, y + height);
           ctx.lineTo(x + width, y);
         } else {
+          // Upward triangle: base at bottom (y+height) and apex at top (y)
           ctx.moveTo(x, y + height);
           ctx.lineTo(x + width / 2, y);
           ctx.lineTo(x + width, y + height);
@@ -387,7 +388,7 @@
         }
       }
       
-      // Draw dice on the dice canvas.
+      // Draw dice.
       function drawDice(dice) {
         diceCtx.clearRect(0, 0, diceCanvas.width, diceCanvas.height);
         const dieSize = 100;
@@ -436,13 +437,13 @@
         });
       }
       
-      // Animate the dice roll.
+      // Animate dice roll.
       function animateDice(finalDice, duration, callback) {
         let startTime = Date.now();
         const interval = setInterval(() => {
           let elapsed = Date.now() - startTime;
           if (elapsed < duration) {
-            const tempDice = rollDiceSimple(); // random temporary dice during animation
+            const tempDice = rollDiceSimple();
             drawDice(tempDice);
           } else {
             clearInterval(interval);
@@ -452,7 +453,7 @@
         }, 100);
       }
       
-      // Roll dice; if doubles, return four moves.
+      // Roll dice; if doubles, return four copies.
       function rollDiceSimple() {
         let d1 = Math.floor(Math.random() * 6) + 1;
         let d2 = Math.floor(Math.random() * 6) + 1;
@@ -474,7 +475,7 @@
               moves.push({ from: point, to: 0, die, bearOff: true });
             } else if (dest >= 1) {
               if (!board[dest] || board[dest].owner === currentTurn ||
-                  (board[dest].owner !== currentTurn && board[dest].count === 1)) {
+                  (board[dest] && board[dest].owner !== currentTurn && board[dest].count === 1)) {
                 moves.push({ from: point, to: dest, die, hit: (board[dest] && board[dest].owner !== currentTurn && board[dest].count === 1) || false });
               }
             }
@@ -484,7 +485,7 @@
               moves.push({ from: point, to: 25, die, bearOff: true });
             } else if (dest <= 24) {
               if (!board[dest] || board[dest].owner === currentTurn ||
-                  (board[dest].owner !== currentTurn && board[dest].count === 1)) {
+                  (board[dest] && board[dest].owner !== currentTurn && board[dest].count === 1)) {
                 moves.push({ from: point, to: dest, die, hit: (board[dest] && board[dest].owner !== currentTurn && board[dest].count === 1) || false });
               }
             }
@@ -508,7 +509,7 @@
         return moves;
       }
       
-      // Check if all checkers of a color are in the home board.
+      // Check whether all checkers for a color are in the home board.
       function allCheckersInHome(color) {
         for (let p = 1; p <= 24; p++) {
           if (board[p] && board[p].owner === color) {
@@ -537,7 +538,7 @@
             board[move.to] = board[move.to] ? { owner: currentTurn, count: board[move.to].count + 1 } : { owner: currentTurn, count: 1 };
           }
         }
-        // Remove the used die.
+        // Remove the used die from currentDice.
         let idx = currentDice.indexOf(move.die);
         if (idx !== -1) currentDice.splice(idx, 1);
         selectedPoint = null;
@@ -559,8 +560,7 @@
           if (!moves.length) {
             for (let p = 1; p <= 24; p++) {
               if (board[p] && board[p].owner === currentTurn) {
-                let legal = getLegalMoves(p);
-                if (legal.length) moves = moves.concat(legal);
+                moves = moves.concat(getLegalMoves(p));
               }
             }
           }
@@ -591,8 +591,7 @@
         } else {
           for (let p = 1; p <= 24; p++) {
             if (board[p] && board[p].owner === currentTurn) {
-              let legal = getLegalMoves(p);
-              if (legal.length) moves = moves.concat(legal);
+              moves = moves.concat(getLegalMoves(p));
             }
           }
         }
@@ -629,11 +628,37 @@
         return false;
       }
       
-      // End turn if no legal moves exist.
+      // If only one legal move exists for the human, auto-execute it.
+      function autoMoveIfSingleLegalOption() {
+        if (currentTurn !== playerColor || currentDice.length === 0) return;
+        let moves = [];
+        if (bar[currentTurn] > 0) {
+          moves = getLegalMovesFromBar();
+        } else {
+          for (let p = 1; p <= 24; p++) {
+            if (board[p] && board[p].owner === currentTurn) {
+              moves = moves.concat(getLegalMoves(p));
+            }
+          }
+        }
+        if (moves.length === 1) {
+          setTimeout(() => {
+            makeMove(moves[0]);
+            redrawBoard();
+            drawBarPieces();
+            checkTurnEnd();
+          }, 300);
+        }
+      }
+      
+      // End turn automatically if no legal moves remain.
       function checkTurnEnd() {
         if (currentDice.length > 0 && !hasLegalMoves()) {
           currentDice = [];
           endTurn();
+        } else {
+          // Otherwise, try auto-moving if only one option exists.
+          autoMoveIfSingleLegalOption();
         }
       }
       
@@ -646,18 +671,19 @@
         const mx = e.clientX - rect.left;
         const my = e.clientY - rect.top;
         let p;
-        // Determine point by which half of board was clicked.
+        // Determine which point was clicked.
         if (my >= boardTop && my < boardTop + boardHeight / 2) {
-          // Top half: points 13-24.
+          // Top half: points 13–24.
           let pos = Math.floor((mx - boardMargin) / pointWidth);
           p = pos + 13;
         } else if (my >= boardTop + boardHeight / 2 && my <= boardTop + boardHeight) {
-          // Bottom half: points 1-12.
+          // Bottom half: points 1–12.
           let pos = Math.floor((mx - boardMargin) / pointWidth);
           p = 12 - pos;
         } else {
           return;
         }
+        // If there are checkers on the bar, handle re‑entry.
         if (bar[currentTurn] > 0) {
           let reEntryMoves = getLegalMovesFromBar();
           if (!reEntryMoves.length) return;
@@ -673,16 +699,19 @@
           }
           return;
         }
+        // If no point is yet selected, select this point (if it has a checker).
         if (selectedPoint === null) {
           if (board[p] && board[p].owner === currentTurn) {
             selectedPoint = p;
             legalMoves = getLegalMoves(p);
           }
         } else {
+          // If clicking on a different own checker, switch selection.
           if (board[p] && board[p].owner === currentTurn && p !== selectedPoint) {
             selectedPoint = p;
             legalMoves = getLegalMoves(p);
           } else {
+            // If clicking on a destination, try to find a legal move.
             let move = legalMoves.find(m => m.to === p);
             if (move) makeMove(move);
             selectedPoint = null;
@@ -696,64 +725,30 @@
       });
 
       /*==============================
-        Custom Dice Controls
-      ==============================*/
-      document.getElementById("setCustomDiceBtn").addEventListener("click", () => {
-        const d1 = parseInt(document.getElementById("customDie1").value);
-        const d2 = parseInt(document.getElementById("customDie2").value);
-        if (isNaN(d1) || isNaN(d2) || d1 < 1 || d1 > 6 || d2 < 1 || d2 > 6) {
-          alert("Please enter valid dice values (1–6).");
-          return;
-        }
-        customDice = (d1 === d2) ? [d1, d1, d1, d1] : [d1, d2];
-      });
-      document.getElementById("clearCustomDiceBtn").addEventListener("click", () => {
-        customDice = null;
-        document.getElementById("customDie1").value = "";
-        document.getElementById("customDie2").value = "";
-      });
-
-      /*==============================
-        Highlight Legal Options
-      ==============================*/
-      function highlightLegalOptions() {
-        if (!legalMoves || legalMoves.length === 0) return;
-        ctx.save();
-        ctx.strokeStyle = "red";
-        ctx.lineWidth = 4;
-        legalMoves.forEach(move => {
-          if (typeof move.to === 'number' && move.to >= 1 && move.to <= 24) {
-            let coords = getCoordinatesForPoint(move.to);
-            ctx.strokeRect(coords.x, coords.y, coords.width, coords.height);
-          }
-        });
-        ctx.restore();
-      }
-      
-      /*==============================
         Checker Drawing – Fixed Stacking
       ==============================*/
-      // Instead of basing alignment on checker color, we use the triangle location.
-      // For points 1–12 (bottom half), the base is the bottom edge;
-      // for points 13–24 (top half), the base is the top edge.
+      // This function stacks checkers based solely on the owner:
+      // • White (moving downward) starts at the top edge of the triangle and stacks downward.
+      // • Black (moving upward) starts at the bottom edge and stacks upward.
       function drawPieces() {
         for (let p = 1; p <= 24; p++) {
           if (!board[p]) continue;
           const coords = getCoordinatesForPoint(p);
           let centerX = coords.x + coords.width / 2;
-          let spacing = Math.min(coords.width, coords.height) / 3;
-          if (p >= 1 && p <= 12) {
-            // Bottom half: stack from bottom upward.
-            let baseY = coords.y + coords.height - spacing/2;
+          // You can adjust spacing as needed (here we use a fixed value).
+          let spacing = 20;
+          if (board[p].owner === 'w') {
+            // For white, use the top edge of the triangle.
+            let baseY = coords.y;
             for (let j = 0; j < board[p].count; j++) {
-              let pieceY = baseY - j * spacing;
+              let pieceY = baseY + j * spacing;
               drawChecker(centerX, pieceY, 15, board[p].owner);
             }
           } else {
-            // Top half: stack from top downward.
-            let baseY = coords.y + spacing/2;
+            // For black, use the bottom edge of the triangle.
+            let baseY = coords.y + coords.height;
             for (let j = 0; j < board[p].count; j++) {
-              let pieceY = baseY + j * spacing;
+              let pieceY = baseY - j * spacing;
               drawChecker(centerX, pieceY, 15, board[p].owner);
             }
           }
@@ -804,7 +799,19 @@
       
       function mainLoop() {
         redrawBoard();
-        highlightLegalOptions();
+        // Highlight legal moves if any.
+        if (legalMoves && legalMoves.length > 0) {
+          ctx.save();
+          ctx.strokeStyle = "red";
+          ctx.lineWidth = 4;
+          legalMoves.forEach(move => {
+            if (typeof move.to === 'number' && move.to >= 1 && move.to <= 24) {
+              let coords = getCoordinatesForPoint(move.to);
+              ctx.strokeRect(coords.x, coords.y, coords.width, coords.height);
+            }
+          });
+          ctx.restore();
+        }
         if (currentDice.length) drawDice(currentDice);
         drawBarPieces();
         requestAnimationFrame(mainLoop);
@@ -813,6 +820,7 @@
       function startGame() {
         hideAllScreens();
         gameState = "playing";
+        // Reset board to starting positions.
         board = new Array(25).fill(null);
         board[24] = { owner: 'w', count: 2 };
         board[13] = { owner: 'w', count: 5 };
@@ -855,6 +863,24 @@
         }
         rollBtn.disabled = true;
         rollBtn.style.display = "none";
+      });
+      
+      /*==============================
+        Custom Dice Controls
+      ==============================*/
+      document.getElementById("setCustomDiceBtn").addEventListener("click", () => {
+        const d1 = parseInt(document.getElementById("customDie1").value);
+        const d2 = parseInt(document.getElementById("customDie2").value);
+        if (isNaN(d1) || isNaN(d2) || d1 < 1 || d1 > 6 || d2 < 1 || d2 > 6) {
+          alert("Please enter valid dice values (1–6).");
+          return;
+        }
+        customDice = (d1 === d2) ? [d1, d1, d1, d1] : [d1, d2];
+      });
+      document.getElementById("clearCustomDiceBtn").addEventListener("click", () => {
+        customDice = null;
+        document.getElementById("customDie1").value = "";
+        document.getElementById("customDie2").value = "";
       });
       
       window.addEventListener("load", () => {
